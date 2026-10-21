@@ -1,0 +1,25 @@
+{
+  "name": "mafia-mini-app-server",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "test": "node --test",
+    "build": "node scripts/build.mjs",
+    "preview": "node scripts/preview.mjs",
+    "setup-bot": "node --env-file=.env scripts/setup-bot.mjs"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "livekit-client": "^2.23.0",
+    "livekit-server-sdk": "^2.19.1",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "socket.io-client": "^4.8.1"
+  }
+}
