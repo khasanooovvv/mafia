@@ -244,3 +244,19 @@ Bot API barça guruh a’zolari röyxatini bermaydi; privacy rejimi ham
 bot qaysi oddiy xabarlarni körishini çeklaydi. Şu sabab /all barça a’zolarni
 kafolatlamaydi. /language hozirça faqat mavjud özbek tilini körsatadi.
 /issue uçun DEVELOPER_USERNAME server sozlamasida beriladi.
+
+
+## Admin panel
+
+`/admin` manzilida login/parolli kuzatuv paneli bor: foydalanuvçilar va
+hamyon balanslari, guruhlar, faol xonalar, umumiy statistika. Röyxatlar 50 tadan
+sahifalanadi; panel hozirça ma’lumot körsatadi, balans yoki öyin holatini özgartirmaydi.
+`ADMIN_LOGIN` va `ADMIN_PASSWORD` faqat `.env`da saqlanadi. Sozlanmasa API 503
+qaytaradi. Parol serverda scrypt bilan soliştiriladi; sessiya bir soatlik,
+HttpOnly/SameSite=Strict cookie’da, HTTPSda Secure. Server qayta işga tuşsa
+admin sessiyalari bekor böladi. /api/admin/overview autentifikatsiyasiz oçilmaydi.
+Registratsiya qilingan foydalanuvçi va bot administrator bölgan guruhlar
+öyin öynamagan bölsa ham reytingning mavjud top-100 chegarasida 0 bilan körinadi.
+Guruhning bot adminligi bekor bölgani haqidagi my_chat_member yangilanişi
+kelganda guruh reytingdan yaşiriladi. Shu sabab eski guruh holati webhook
+kelmagunça so‘nggi ma’lum holatga asoslanadi.

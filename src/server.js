@@ -1,3 +1,4 @@
+import {createAdmin} from './admin.js';
 import {isOfficialGroup} from './official-group.js';
 import {GROUP_COMMANDS} from './bot-commands.js';
 import { validateProduction } from './config.js';
@@ -23,7 +24,7 @@ async function body(req) {
   for await (const chunk of req) { size += chunk.length; if (size > 64000) throw new GameError('Sörov juda katta'); chunks.push(chunk); }
   return Buffer.concat(chunks).toString();
 }
-export function createApp({ botToken, botUsername = '', origin = 'http://localhost:3000', gameOptions = {}, dbPath = ':memory:', webhookSecret = '', telegram, developerUsername = '', registrationExtensionMs = 30000, demo = false } = {}) {
+export function createApp({ botToken, botUsername = '', origin = 'http://localhost:3000', gameOptions = {}, dbPath = ':memory:', webhookSecret = '', telegram, developerUsername = '', adminLogin = '', adminPassword = '', registrationExtensionMs = 30000, demo = false } = {}) {
   if (!botToken && !demo) throw new Error('BOT_TOKEN sozlanmagan. .env.example asosida .env yarating.');
   const store = new Store(dbPath), rooms = store.load();
   store.settleWeeklyRewards();
@@ -78,6 +79,7 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
     const previous = store.update(update.update_id); if (previous?.sent) return;
     if(update.my_chat_member){
       const change=update.my_chat_member,chat=change.chat;
+      if(chat&&['group','supergroup'].includes(chat.type)&&change.new_chat_member?.status!=='administrator')store.db.prepare('INSERT OR REPLACE INTO registered_groups VALUES(?,0)').run(String(chat.id));
       if(chat && ['group','supergroup'].includes(chat.type) && change.new_chat_member?.status==='administrator'){
         // Capture verified admins, never trust the person who merely added the bot.
         const admins=await bot.call('getChatAdministrators',{chat_id:chat.id});
@@ -133,6 +135,7 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
       const ref=/^\/start(?:@([a-zA-Z0-9_]+))?\s+ref_([1-9][0-9]{0,19})\s*$/.exec(m.text||'');
       const own=!ref?.[1] || ref[1].toLowerCase()===bot.username.toLowerCase();
       store.registerUser(String(m.from.id),own?ref?.[2]:null);
+      store.db.prepare('INSERT OR REPLACE INTO user_directory VALUES(?,?)').run(String(m.from.id),String(m.from.first_name||'Öyinçi').slice(0,80));
     }
     const referralCommand=/^\/(?:referral|referal)(?:@([a-zA-Z0-9_]+))?\s*$/.exec(m?.text||'');
     if(m?.chat?.type==='private' && m.from && !m.from.is_bot && referralCommand && (!referralCommand[1] || referralCommand[1].toLowerCase()===bot.username.toLowerCase())) {
@@ -231,11 +234,13 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
     result.enabledRoles=[...enabled];
     return result;
   }
+  const adminHandler=createAdmin({login:adminLogin,password:adminPassword,origin,store,rooms});
   const http = createServer(async (req, res) => {
     res.setHeader('Cache-Control', 'no-store'); res.setHeader('X-Content-Type-Options', 'nosniff'); res.setHeader('Referrer-Policy', 'no-referrer');
     const json = (code, data) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(data)); };
     try {
       const pathname = new URL(req.url, 'http://localhost').pathname;
+      if(pathname.startsWith('/api/admin/'))return await serial(()=>adminHandler(req,res,pathname,body));
       if(req.method==='GET' && pathname.startsWith('/api/group-photo/')) {
         const id=decodeURIComponent(pathname.slice('/api/group-photo/'.length));
         const card=groupCards.get(id);
@@ -250,7 +255,7 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
         const data = JSON.parse(await body(req)); await serial(() => updateBot(data)); return json(200, { ok: true });
       }
       if (req.method !== 'GET') return json(405, { error: 'Method not allowed' });
-      const assets = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/app.css': ['app.css', 'text/css'], '/styles.css': ['styles.css', 'text/css'], '/theme.css': ['theme.css', 'text/css'], '/tabler.css': ['tabler.css', 'text/css'] };
+      const assets = { '/admin':['admin.html','text/html'], '/admin/':['admin.html','text/html'], '/admin.js':['admin.js','text/javascript'], '/admin.css':['admin.css','text/css'], '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/app.css': ['app.css', 'text/css'], '/styles.css': ['styles.css', 'text/css'], '/theme.css': ['theme.css', 'text/css'], '/tabler.css': ['tabler.css', 'text/css'] };
       for (const id of ['commissioner', 'sergeant', 'doctor', 'maniac', 'mistress', 'lawyer', 'suicide', 'hobo', 'lucky', 'kamikaze', 'bodyguard', 'mayor', 'journalist', 'citizen']) assets[`/images/${id}-2d.png`] = [`images/${id}-2d.png`, 'image/png'];
       if (!assets[pathname]) return json(404, { error: 'Not found' });
       const [file, type] = assets[pathname], data = await readFile(resolve(PUBLIC, file));
@@ -268,6 +273,7 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
   io.use((socket, next) => {
     try {
       socket.data.user = authenticate(socket.handshake.auth?.initData, botToken);
+      store.db.prepare('INSERT OR REPLACE INTO user_directory VALUES(?,?)').run(socket.data.user.id,socket.data.user.name);
       const startParam=new URLSearchParams(socket.handshake.auth.initData).get('start_param');
       store.registerUser(socket.data.user.id,/^ref_([1-9][0-9]{0,19})$/.exec(startParam||'')?.[1]);
       const expiry = (Number(new URLSearchParams(socket.handshake.auth.initData).get('auth_date')) + 3600) * 1000;
@@ -363,7 +369,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   validateProduction(process.env);
   const demo = process.env.DEMO_MODE === 'true';
   if (demo && process.env.NODE_ENV === 'production') throw new Error('Production’da demo rejimi taqiqlangan');
-  const app = createApp({ botToken: process.env.BOT_TOKEN, botUsername: process.env.BOT_USERNAME, origin: process.env.APP_ORIGIN, dbPath: process.env.DB_PATH || 'data/mafia.sqlite', webhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET, developerUsername:process.env.DEVELOPER_USERNAME, demo });
+  const app = createApp({ botToken: process.env.BOT_TOKEN, botUsername: process.env.BOT_USERNAME, origin: process.env.APP_ORIGIN, dbPath: process.env.DB_PATH || 'data/mafia.sqlite', webhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET, developerUsername:process.env.DEVELOPER_USERNAME, adminLogin:process.env.ADMIN_LOGIN, adminPassword:process.env.ADMIN_PASSWORD, demo });
   const host = demo ? '127.0.0.1' : process.env.HOST || '127.0.0.1', port = Number(process.env.PORT || 3000);
   app.http.listen(port, host, () => console.log(`Mafia Mini App: http://${host}:${port}`));
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, async () => { await app.close(); process.exit(0); });

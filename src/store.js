@@ -33,6 +33,9 @@ export class Store {
       CREATE TABLE IF NOT EXISTS group_boxes(week_start INTEGER NOT NULL,group_id TEXT NOT NULL,group_name TEXT NOT NULL,rank INTEGER NOT NULL,reward TEXT NOT NULL,PRIMARY KEY(week_start,group_id));
       CREATE TABLE IF NOT EXISTS box_payouts(week_start INTEGER NOT NULL,group_id TEXT NOT NULL,user_id TEXT NOT NULL,coins INTEGER NOT NULL,active_role INTEGER NOT NULL,PRIMARY KEY(week_start,group_id,user_id));
       CREATE INDEX IF NOT EXISTS weekly_reward_user ON box_payouts(week_start,user_id);
+      CREATE TABLE IF NOT EXISTS registered_groups(group_id TEXT PRIMARY KEY,active INTEGER NOT NULL DEFAULT 1);
+      CREATE TABLE IF NOT EXISTS user_directory(user_id TEXT PRIMARY KEY,name TEXT NOT NULL);
+      INSERT OR IGNORE INTO registered_groups SELECT id,1 FROM managed_groups;
       CREATE TABLE IF NOT EXISTS group_call_cooldowns(group_id TEXT PRIMARY KEY,sent INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS known_group_members(group_id TEXT NOT NULL,user_id TEXT NOT NULL,name TEXT NOT NULL,PRIMARY KEY(group_id,user_id));
       CREATE TABLE IF NOT EXISTS next_game_subscriptions(group_id TEXT NOT NULL,user_id TEXT NOT NULL,PRIMARY KEY(group_id,user_id));
@@ -148,8 +151,8 @@ export class Store {
   rankings(period = 'week', now = Date.now()) {
     const start = periodStart(period, now);
     return {
-      groups: this.db.prepare(`SELECT group_id AS id, MAX(group_name) AS name, SUM(points) AS points, COUNT(*) AS games FROM results WHERE finished>=? AND group_id IS NOT NULL AND qualified=1 GROUP BY group_id ORDER BY points DESC, games DESC, id LIMIT 100`).all(start),
-      players: this.db.prepare(`SELECT user_id AS id, MAX(name) AS name, SUM(s.points) AS points, COUNT(*) AS games, SUM(won) AS wins FROM scores s JOIN results r ON s.game_id=r.id WHERE r.finished>=? AND s.points>0 GROUP BY user_id ORDER BY points DESC, wins DESC, id LIMIT 100`).all(start)
+      groups: this.db.prepare(`WITH totals AS (SELECT group_id id,MAX(group_name) name,SUM(points) points,COUNT(*) games FROM results WHERE finished>=? AND group_id IS NOT NULL AND qualified=1 GROUP BY group_id), ids AS (SELECT id FROM totals UNION SELECT group_id FROM registered_groups WHERE active=1) SELECT ids.id,COALESCE(g.name,t.name,'Guruh') name,COALESCE(t.points,0) points,COALESCE(t.games,0) games FROM ids LEFT JOIN totals t ON t.id=ids.id LEFT JOIN managed_groups g ON g.id=ids.id LEFT JOIN registered_groups rg ON rg.group_id=ids.id WHERE COALESCE(rg.active,1)=1 ORDER BY points DESC,games DESC,ids.id LIMIT 100`).all(start),
+      players: this.db.prepare(`WITH totals AS (SELECT s.user_id id,MAX(s.name) name,SUM(s.points) points,COUNT(*) games,SUM(won) wins FROM scores s JOIN results r ON r.id=s.game_id WHERE r.finished>=? AND s.points>0 GROUP BY s.user_id), ids AS (SELECT id FROM totals UNION SELECT user_id FROM bot_users) SELECT ids.id,COALESCE(d.name,t.name,'Öyinçi') name,COALESCE(t.points,0) points,COALESCE(t.games,0) games,COALESCE(t.wins,0) wins FROM ids LEFT JOIN totals t ON t.id=ids.id LEFT JOIN user_directory d ON d.user_id=ids.id ORDER BY points DESC,wins DESC,ids.id LIMIT 100`).all(start)
     };
   }
   profile(id) {
@@ -159,6 +162,7 @@ export class Store {
   groupSettings(id) { const row=this.db.prepare('SELECT settings FROM managed_groups WHERE id=?').get(id); return row?JSON.parse(row.settings):{}; }
   manageGroup(group,userId,settings=this.groupSettings(group.id)) {
     this.db.prepare('INSERT INTO managed_groups VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,settings=excluded.settings').run(group.id,group.name,JSON.stringify(settings));
+    this.db.prepare('INSERT OR REPLACE INTO registered_groups VALUES(?,1)').run(group.id);
     this.db.prepare('INSERT OR IGNORE INTO group_admins VALUES(?,?)').run(group.id,userId);
     return {...group,settings};
   }
