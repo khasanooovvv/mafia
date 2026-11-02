@@ -33,6 +33,9 @@ export class Store {
       CREATE TABLE IF NOT EXISTS group_boxes(week_start INTEGER NOT NULL,group_id TEXT NOT NULL,group_name TEXT NOT NULL,rank INTEGER NOT NULL,reward TEXT NOT NULL,PRIMARY KEY(week_start,group_id));
       CREATE TABLE IF NOT EXISTS box_payouts(week_start INTEGER NOT NULL,group_id TEXT NOT NULL,user_id TEXT NOT NULL,coins INTEGER NOT NULL,active_role INTEGER NOT NULL,PRIMARY KEY(week_start,group_id,user_id));
       CREATE INDEX IF NOT EXISTS weekly_reward_user ON box_payouts(week_start,user_id);
+      CREATE TABLE IF NOT EXISTS group_call_cooldowns(group_id TEXT PRIMARY KEY,sent INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS known_group_members(group_id TEXT NOT NULL,user_id TEXT NOT NULL,name TEXT NOT NULL,PRIMARY KEY(group_id,user_id));
+      CREATE TABLE IF NOT EXISTS next_game_subscriptions(group_id TEXT NOT NULL,user_id TEXT NOT NULL,PRIMARY KEY(group_id,user_id));
       CREATE TABLE IF NOT EXISTS updates(id INTEGER PRIMARY KEY, room_id TEXT, sent INTEGER NOT NULL DEFAULT 0);
       CREATE TABLE IF NOT EXISTS bot_users(user_id TEXT PRIMARY KEY,first_seen INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS referrals(invitee_id TEXT PRIMARY KEY,inviter_id TEXT NOT NULL REFERENCES bot_users(user_id),created_at INTEGER NOT NULL,rewarded_game TEXT REFERENCES results(id),inviter_coins INTEGER NOT NULL DEFAULT 0,invitee_coins INTEGER NOT NULL DEFAULT 0);

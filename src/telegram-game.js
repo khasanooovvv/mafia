@@ -1,3 +1,5 @@
+import {OFFICIAL_GROUP_URL} from './official-group.js';
+import { randomUUID } from 'node:crypto';
 import { Game, GameError } from './game.js';
 
 export const roleNames={citizen:'Tinç aholi',don:'Don',mafia:'Mafiya',commissioner:'Komissar',sergeant:'Serjant',doctor:'Şifokor',maniac:'Manyak',mistress:'Ma’şuqa',lawyer:'Advokat',suicide:'Suidsid',hobo:'Darbadar',lucky:'Omadli',kamikaze:'Kamikadze',journalist:'Jurnalist',bodyguard:'Tansoqçi',mayor:'Mer'};
@@ -10,6 +12,7 @@ export function gameButton(g,text,action,arg=''){
 }
 export function privateGameLink(bot,g,join=false){return `https://t.me/${bot.username}?start=${join?'join_':'play_'}${g.id}`;}
 export function groupKeyboard(bot,g){
+ if(g.entryMode==='miniapp')return {inline_keyboard:[[{text:'🎮 Mini App’da öyinga kiriş',url:bot.link(g.id)}]]};
  const rows=[];
  if(g.phase==='lobby')rows.push([{text:'Telegram orqali qöşiliş',url:privateGameLink(bot,g,true)}],[gameButton(g,'Öyinni boşlaş','start')]);
  else if(g.phase==='voting'){
@@ -18,25 +21,59 @@ export function groupKeyboard(bot,g){
   if(g.rules.skipVoting)rows.push([gameButton(g,'Ovozni ötkaziş','skipvote')]);
  }else if(g.phase==='confirmation')rows.push([gameButton(g,'👍 Tasdiqlash','yes'),gameButton(g,'👎 Rad etish','no')]);
  else if(g.phase!=='finished')rows.push([{text:'Botdagi öyinim',url:privateGameLink(bot,g)}]);
- rows.push([{text:'Mini App’da oçiş',url:bot.link(g.id)}]);
+ if(g.entryMode!=='telegram')rows.push([{text:'Mini App’da oçiş',url:bot.link(g.id)}]);
  return {inline_keyboard:rows};
 }
 
 export class TelegramGame {
- constructor(bot,hooks){this.bot=bot;this.h=hooks;this.queue=Promise.resolve();}
- async send(chat,text,rows=[]){return this.bot.call('sendMessage',{chat_id:chat,text,reply_markup:{inline_keyboard:rows},protect_content:true});}
+ constructor(bot,hooks){this.bot=bot;this.h=hooks;this.queue=Promise.resolve();this.purchases=new Map();}
+ async send(chat,text,rows=[]){const entities=text.startsWith('Men 🤵🏻Mafia öyinini rasmiy botiman')?[{type:'bold',offset:text.indexOf('Mafia'),length:5}]:undefined;return this.bot.call('sendMessage',{chat_id:chat,text,...(entities?{entities}:{}),reply_markup:{inline_keyboard:rows},protect_content:true});}
  targets(g,id,action,first){
   const buttons=g.players.flatMap((p,i)=>p.alive && !(action==='j2'&&String(i)===first)?[gameButton(g,p.name,action,first===undefined?String(i):`${first}_${i}`)]:[]);
   const rows=[];for(let i=0;i<buttons.length;i+=2)rows.push(buttons.slice(i,i+2));return rows;
  }
  async home(id){
-  const link=section=>this.bot.link('menu_'+section);
-  return this.send(id,'🎭 Tun şahriga xuş kelibsiz!\nGuruhga botni qöşing yoki Mini App orqali öyinga kiring.',[
+  const button=(text,section)=>({text,callback_data:'nav|'+section});
+  return this.send(id,'Men 🤵🏻Mafia öyinini rasmiy botiman.\nQuyidagi bölumlardan birini tanlang.',[
    [{text:'🤵 Botni guruhga qöşiş',url:`https://t.me/${this.bot.username}?startgroup=mafia&admin=delete_messages+restrict_members+pin_messages`}],
-   [{text:'👥 Guruhlarim',url:link('groups')},{text:'🎲 Öyinga kiriş',url:link('game')}],
-   [{text:'👤 Profil',url:link('profile')},{text:'🛒 Dökon',url:link('shop')}],
-   [{text:'🎭 Rollar',url:link('roles')},{text:'🎁 Referal',url:link('referrals')}]
+   [button('👥 Guruhlar','groups'),button('🎲 Öyinga kiriş','game')],
+   [button('👤 Profil','profile'),button('🛒 Dökon','shop')],
+   [button('🎭 Rollar','roles'),button('🎁 Referal','referrals')],
+   [{text:'Mini App’ni oçiş',url:this.bot.link()}]
   ]);
+ }
+ async section(id,section,arg=''){
+  const store=this.h.store,back=[{text:'← Boş menyu',callback_data:'nav|home'}];
+  if(section==='home')return this.home(id);
+  if(section==='profile'){
+   const p=store.profile(id),i=store.inventory(id);
+   return this.send(id,`👤 Profil\nÖyinlar: ${p.games}\nĞalabalar: ${p.wins}\n🪙 Tanga: ${i.coins}\n🛡 Himoya: ${i.protection}\n📂 Hujjatlar: ${i.documents}\n🎭 Faol rol: ${i.active_role}\n🎃 Qovoq: ${i.pumpkin}\n🍬 Şirinlik: ${i.candy}`,[[{text:'🛒 Dökon',callback_data:'nav|shop'}],back]);
+  }
+  if(section==='referrals'){
+   const r=store.referralStats(id);return this.send(id,`🎁 Referal\nhttps://t.me/${this.bot.username}?start=ref_${id}\n\nTakliflar: ${r.invited}\nFaol referallar: ${r.qualified}\nOlingan tanga: ${r.earned}\n\nYangi döstingiz birinchi hisoblangan öyinida faol qatnaşsa, ikkalangizga 10 tangadan beriladi.`,[back]);
+  }
+  if(section==='roles')return this.send(id,'🎭 Rollar\n'+Object.values(roleNames).join(' · ')+`\n\nTun: faol rollar şaxsiy chatda nishon tanlaydi.\nKun: guruhda muhokama, ovoz beriş va hukm tasdiği.\nMafia — son jihatidan ustunlikka erişadi; tinçlar — Mafia va Qotilni topadi.`,[back]);
+  if(section==='groups'){
+   return this.send(id,'👥 Rasmiy guruh\n✅ MafiaUzAppGr\nDöstlar bilan öynaş uçun rasmiy guruhimizga qöşiling.',[[{text:'✅ MafiaUzAppGr — rasmiy guruh',url:OFFICIAL_GROUP_URL}],back]);
+  }
+  if(section==='game'){
+   const g=this.h.active(id);if(g?.group){await this.bot.member(g.group.id,id);await this.h.advance(g);return this.menu(g,id);}
+   return this.send(id,'🎲 Guruhda /mafia yuboring, söng öyinga qöşiliş tugmasini bosing. Rollar va tungi harakatlar şu şaxsiy chatda körinadi.',[back]);
+  }
+  const items={protection:['Himoya',100],documents:['Hujjatlar',150],active_role:['Faol rol',200],pumpkin:['Qovoq',100],candy:['Şirinlik',30]};
+  if(section==='shop')return this.send(id,`🛒 Dökon · ${store.inventory(id).coins} tanga\nBuyumni tanlang. Xarid oldidan tasdiq söraladi.`,[...Object.entries(items).map(([key,[name,price]])=>[{text:`${name} — ${price} tanga`,callback_data:'nav|buy|'+key}]),back]);
+  if(section==='buy'){
+   check(Object.hasOwn(items,arg),'Buyum topilmadi');
+   for(const [token,p]of this.purchases)if(p.id===id||p.expires<Date.now())this.purchases.delete(token);
+   const token=randomUUID();this.purchases.set(token,{id,item:arg,expires:Date.now()+120000});
+   return this.send(id,`${items[arg][0]}ni ${items[arg][1]} tangaga sotib olasizmi?`,[[{text:'Tasdiqlaş',callback_data:'nav|pay|'+token}],[{text:'Bekor qiliş',callback_data:'nav|shop'}]]);
+  }
+  if(section==='pay'){
+   const p=this.purchases.get(arg);check(p&&p.id===id&&p.expires>Date.now(),'Xarid tasdiği eskirgan');this.purchases.delete(arg);
+   try{store.buyItem(id,p.item);}catch{throw new GameError('Xarid bajarilmadi. Tanga yetarliligini tekşiring.');}
+   return this.send(id,'Xarid qilindi. Buyum inventaringizga qöşildi.',[[{text:'👤 Profil',callback_data:'nav|profile'}],back]);
+  }
+  throw new GameError('Bölum topilmadi');
  }
  async menu(g,id){
   const v=g.view(id), me=v.me, name=pid=>g.players.find(p=>p.id===pid)?.name||'Öyinçi';
@@ -78,7 +115,7 @@ export class TelegramGame {
   await this.send(id,text,rows);
  }
  publish(game){
-  if(!game.group||!this.bot.call)return;
+  if(!game.group||!this.bot.call||game.entryMode==='miniapp')return;
   const snapshot=game.snapshot();
   this.queue=this.queue.then(async()=>{
    const g=Game.restore(snapshot), notices=game.telegramNotices ||= [];
@@ -106,6 +143,10 @@ export class TelegramGame {
   try{
    check(q.from&&!q.from.is_bot&&Number.isSafeInteger(q.from.id),'Foydalanuvçi notöğri');
    this.h.rate?.(String(q.from.id));
+   if(String(q.data||'').startsWith('nav|')){
+    const id=String(q.from.id);check(q.message?.chat?.type==='private'&&String(q.message.chat.id)===id,'Bu menyu faqat şaxsiy chat uçun');
+    const [,section,arg='']=q.data.split('|');await this.section(id,section,arg);return;
+   }
    const [prefix,room,round,phase,action,arg='']=String(q.data||'').split('|');
    check(prefix==='mf','Tugma notöğri');const g=this.h.rooms.get(room), id=String(q.from.id);
    check(g?.group,'Öyin topilmadi');
@@ -143,12 +184,16 @@ export class TelegramGame {
  }
  async privateMessage(m){
   if(m.chat?.type!=='private'||!m.from||m.from.is_bot||typeof m.text!=='string')return false;
-  const match=/^\/(start|game|leave|team|lastwords)(?:@[\w]+)?(?:\s+([\s\S]*))?$/.exec(m.text);if(!match)return false;
+  const match=/^\/(start|game|leave|team|lastwords|profile|language|issue)(?:@[\w]+)?(?:\s+([\s\S]*))?$/.exec(m.text);if(!match)return false;
   const id=String(m.from.id), arg=match[2]||'';
   try{
    this.h.rate?.(id);
+   if(match[1]==='profile'){await this.section(id,'profile');return true;}
+   if(match[1]==='language'){await this.send(id,'Öyin tili: Özbekça. Hozirça şu til mavjud.',[[{text:'← Boş menyu',callback_data:'nav|home'}]]);return true;}
+   if(match[1]==='issue'){const contact=this.h.developer;await this.send(id,contact?`Developer bilan boğlaniş: @${contact}`:'Developer bilan boğlaniş manzili hali sozlanmagan.');return true;}
+
    if(match[1]==='start'&&!arg){const active=this.h.active(id);if(active){if(active.group)await this.bot.member(active.group.id,id);await this.h.advance(active);}await this.home(id);if(active?.group)await this.menu(active,id);return true;}
-   if(match[1]==='start'&&/^ref_[1-9][0-9]{0,19}$/.test(arg)){await this.send(id,'Tun şahriga xuş kelibsiz! Yangi foydalanuvçi sifatida birinchi hisoblangan öyiningizda faol qatnaşsangiz, sizga va taklif qilgan döstingizga 10 tangadan beriladi.',[[{text:'Mini App’ni oçiş',url:this.bot.link()}]]);return true;}
+   if(match[1]==='start'&&/^ref_[1-9][0-9]{0,19}$/.test(arg)){await this.send(id,'Men 🤵🏻Mafia öyinini rasmiy botiman. Yangi foydalanuvçi sifatida birinchi hisoblangan öyiningizda faol qatnaşsangiz, sizga va taklif qilgan döstingizga 10 tangadan beriladi.',[[{text:'Mini App’ni oçiş',url:this.bot.link()}]]);return true;}
    if(match[1]==='start'&&/^(join|play)_/.test(arg)){
     const g=this.h.rooms.get(arg.replace(/^(join|play)_/,''));check(g?.group,'Öyin topilmadi');
     if(arg.startsWith('join_'))await this.join(g,m.from);

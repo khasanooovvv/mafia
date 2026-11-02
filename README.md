@@ -215,3 +215,32 @@ Telegram API bot ilgari qöşilgan barça guruhlarni avtomatik sanab bermaydi;
 eski guruhlar uçun `/sozlash` yoki qo‘lda ulash ishlatiladi.
 Bu özgarişni joylaşda `setup-bot` webhookning `allowed_updates` röyxatiga
 `my_chat_member`ni qöşadi. Lokal tayyorlaşning özi ishlab turgan webhookni özgartirmaydi.
+
+
+Bot boş menyusidagi Profil, Dökon, Rollar, Referal, Guruhlarim va Öyinga kiriş
+endi `nav|...` callbacklari bilan Telegram şaxsiy chatining özida işlaydi.
+Mini App uçun alohida tugma bor. Dökon xaridi 2 daqiqalik, foydalanuvçiga
+boğlangan bir martalik tasdiq bilan bajariladi; bot va Mini App bir hamyonni işlatadi.
+
+
+Guruhda `/game` (yoki `/mafia`) Telegram öyini uçun ro‘yxat oçadi:
+qöşiliş va boşlaş tugmalari bot orqali işlaydi. `/AppGame` (menyuda `/appgame`)
+Mini App öyin xonasini oçadi va Mini App havolasini beradi.
+Guruhda bitta faol xona saqlanadi: boshqa komanda mavjud öyin rejimini almashtirmaydi.
+
+
+## Guruh va şaxsiy komandalar
+
+Guruh menyusi tartibi: /game, /appgame, /extended, /start, /stop, /next,
+/top, /all, /share, /help. Şaxsiy menyu: /profile, /start, /leave,
+/language, /issue. Menyular Telegram command scope orqali ajratilgan.
+/extended administrator uçun registratsiyaga 30 soniya qöşadi.
+/stop faqat lobby registratsiyasini bekor qiladi; faol öyinni töxtatmaydi.
+/next keyingi yangi xona oçilganda bir martalik şaxsiy bildirişnoma beradi.
+/top shu guruhdagi öyinçilarning umumiy tanga reytingidan top 30ni körsatadi.
+/all faqat admin uçun, 5 daqiqada bir marta. Bot tanigan 200 tagacha a’zo
+Telegram a’zoligi tekşirilgandan keyin HTML mention bilan çaqiriladi.
+Bot API barça guruh a’zolari röyxatini bermaydi; privacy rejimi ham
+bot qaysi oddiy xabarlarni körishini çeklaydi. Şu sabab /all barça a’zolarni
+kafolatlamaydi. /language hozirça faqat mavjud özbek tilini körsatadi.
+/issue uçun DEVELOPER_USERNAME server sozlamasida beriladi.

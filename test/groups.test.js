@@ -6,10 +6,12 @@ import { DEFAULT_RULES, GameError } from '../src/game.js';
 import { TOKEN,signed } from '../support/signing.js';
 import { ROLE_ORDER } from '../src/settings.js';
 import { Store } from '../src/store.js';
+import {isOfficialGroup} from '../src/official-group.js';
+test('official group verification matches only the exact Telegram username',()=>{assert.equal(isOfficialGroup('mafiauzappgr'),true);assert.equal(isOfficialGroup('MafiaUzAppGr'),true);assert.equal(isOfficialGroup('MafiaUzAppGr_fake'),false);assert.equal(isOfficialGroup(null),false);});
 
 test('group rankings include Telegram identity and a local photo URL',async t=>{
- let calls=0;
- const bot={username:'test_bot',call:async()=>{calls++;return {title:'Updated group',username:'public_group',photo:{small_file_id:'photo-file'}};},photo:async()=>Buffer.from('image')};
+ let calls=0,username='public_group';
+ const bot={username:'test_bot',call:async()=>{calls++;return {title:'Updated group',username,photo:{small_file_id:'photo-file'}};},photo:async()=>Buffer.from('image')};
  const app=createApp({botToken:TOKEN,telegram:bot});await new Promise(r=>app.http.listen(0,'127.0.0.1',r));
  const url=`http://127.0.0.1:${app.http.address().port}`;
  app.store.db.prepare('INSERT INTO results VALUES(?,?,?,?,?,?,?)').run('rank-test',Date.now(),'-100123','Old name','roster',1,16);
@@ -24,6 +26,7 @@ test('group rankings include Telegram identity and a local photo URL',async t=>{
  assert.equal((await c.timeout(3000).emitWithAck('players:profile',{userId:'999'})).ok,false);
  assert.equal(result.ok,true);assert.equal(result.groups[0].name,'Updated group');assert.equal(result.groups[0].url,'https://t.me/public_group');assert.equal(result.groups[0].photoUrl,'/api/group-photo/-100123');
  await c.timeout(3000).emitWithAck('rankings:get',{period:'all'});assert.equal(calls,1);
+ assert.equal(result.groups[0].official,false);
  const photo=await fetch(url+result.groups[0].photoUrl);assert.equal(photo.status,200);assert.equal(await photo.text(),'image');
  assert.equal((await fetch(url+'/api/group-photo/-100999')).status,404);
 });

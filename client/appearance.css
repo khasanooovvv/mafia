@@ -142,3 +142,5 @@ dialog.shop-screen{width:min(94vw,520px);max-width:520px;max-height:90dvh;paddin
 html.modal-open{overflow:hidden;overscroll-behavior:none}
 html.modal-open body{position:fixed;top:var(--modal-scroll-top,0px);left:0;right:0;overflow:hidden}
 dialog,dialog .catalog-grid,dialog .chat-log,dialog .choice-sheet{overscroll-behavior:contain}
+
+.official-group-badge{display:inline-grid;place-items:center;width:16px;height:16px;margin-left:5px;border-radius:50%;background:#3390ec;color:#fff;font-size:11px;font-weight:800;vertical-align:middle}
