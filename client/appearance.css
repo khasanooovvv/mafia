@@ -144,3 +144,31 @@ html.modal-open body{position:fixed;top:var(--modal-scroll-top,0px);left:0;right
 dialog,dialog .catalog-grid,dialog .chat-log,dialog .choice-sheet{overscroll-behavior:contain}
 
 .official-group-badge{display:inline-grid;place-items:center;width:16px;height:16px;margin-left:5px;border-radius:50%;background:#3390ec;color:#fff;font-size:11px;font-weight:800;vertical-align:middle}
+
+/* Ranking: one compact filter row and concise leaderboard entries. */
+.rank-page .workspace>header{display:none}
+.rank-page main{padding-top:24px}
+.rank-page .page-heading{position:relative;display:block;padding-top:28px;margin-bottom:20px}
+.rank-help{position:absolute;right:0;top:0;z-index:5;font-size:11px;color:var(--app-muted)}
+.rank-help summary{cursor:pointer;color:var(--app-accent);text-decoration:underline;text-underline-offset:3px;list-style:none;min-height:24px}
+.rank-help summary::-webkit-details-marker{display:none}
+.rank-help-content{position:absolute;right:0;top:30px;width:min(340px,calc(100vw - 40px));max-height:60dvh;overflow:auto;box-sizing:border-box;padding:16px;background:var(--app-panel);border:1px solid var(--app-line);border-radius:14px;box-shadow:0 10px 32px #0003}
+.rank-help-content p{margin:0;font-size:12px;line-height:1.6}
+.rank-help-content p+p{margin-top:14px}
+.rank-filters{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:16px}
+.rank-filters .ranking-tabs,.rank-filters .periods{margin:0;flex-shrink:0}
+.rank-filters button{font-size:11px;min-height:30px;padding:4px 10px;line-height:18px}
+.rank-list.card{padding:0 14px;border-radius:18px}
+.rank-list .leader-row{display:grid;grid-template-columns:30px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:76px;padding:12px 0;box-sizing:border-box}
+.rank-list .place{font-size:20px;line-height:1.2}
+.rank-list .rank-reward-badge{font-size:11px;margin-top:2px}
+.rank-list .rank-identity{gap:10px}
+.rank-list .rank-group-avatar{width:36px;height:36px}
+.rank-list .rank-identity b{display:flex;align-items:center;gap:4px;font-size:14px;line-height:20px;min-width:0}
+.rank-list .rank-group-link,.rank-list .rank-player-link{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.rank-list .rank-identity small{display:block;font-size:11px;line-height:16px;margin-top:2px}
+.rank-list .leader-row>strong{font-size:17px;line-height:20px;text-align:right}
+.rank-list .leader-row>strong small{display:block;font-size:10px;line-height:15px;margin:0}
+.rank-list .official-group-badge{display:inline-flex;flex:0 0 18px;width:18px;height:18px;margin:0;background:none;border-radius:0;align-items:center;justify-content:center}
+.official-group-badge svg{display:block;width:100%;height:100%}
+@media(max-width:370px){.rank-filters button{font-size:10px;padding:4px 7px}.rank-filters{gap:4px}.rank-list.card{padding:0 10px}.rank-list .leader-row{gap:7px}}
