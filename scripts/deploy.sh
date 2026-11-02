@@ -16,6 +16,8 @@ tar -tzf "$archive" >/dev/null
 test -f "$release/src/server.js"
 # Build before replacing the running bot.
 docker build -t "mafia-app:$sha" "$release"
+# Verify non-root imports before touching the running application.
+docker run --rm --entrypoint node "mafia-app:$sha" --input-type=module -e "await import('./src/server.js'); console.log('Runtime imports OK');"
 cd /opt/mafia
 docker compose config --quiet
 previous=$(docker image inspect mafia-app:latest --format '{{.Id}}' 2>/dev/null || true)
