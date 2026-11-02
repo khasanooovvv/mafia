@@ -10,7 +10,6 @@ import { Game, GameError, DEFAULT_RULES, EXTRA_RULES, OPTIONAL_ROLES } from './g
 import { authenticate } from './auth.js';
 import { Store } from './store.js';
 import { Telegram } from './telegram.js';
-import { Voice } from './voice.js';
 import { shouldDeleteGroupMessage } from './moderation.js';
 import { GroupVoting } from './group-voting.js';
 import { TelegramGame, groupKeyboard } from './telegram-game.js';
@@ -22,12 +21,12 @@ async function body(req) {
   for await (const chunk of req) { size += chunk.length; if (size > 64000) throw new GameError('So‘rov juda katta'); chunks.push(chunk); }
   return Buffer.concat(chunks).toString();
 }
-export function createApp({ botToken, botUsername = '', origin = 'http://localhost:3000', gameOptions = {}, dbPath = ':memory:', webhookSecret = '', telegram, voice, demo = false } = {}) {
+export function createApp({ botToken, botUsername = '', origin = 'http://localhost:3000', gameOptions = {}, dbPath = ':memory:', webhookSecret = '', telegram, demo = false } = {}) {
   if (!botToken && !demo) throw new Error('BOT_TOKEN sozlanmagan. .env.example asosida .env yarating.');
   const store = new Store(dbPath), rooms = store.load();
   store.settleWeeklyRewards();
   let nextRewardCheck=Date.now()+60000;
-  const bot = telegram || new Telegram(botToken, botUsername), audio = voice || new Voice();
+  const bot = telegram || new Telegram(botToken, botUsername);
   const groupVoting = new GroupVoting(bot, game => store.save(game));
   const telegramGame=new TelegramGame(bot,{
     rate:id=>{const key='tg:'+id;const l=limits.get(key)||{start:Date.now(),n:0};if(Date.now()-l.start>10000){l.start=Date.now();l.n=0;}l.n++;limits.set(key,l);if(l.n>40)throw new GameError('Juda ko‘p so‘rov, biroz kuting');},
@@ -60,16 +59,13 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
     if (rooms.size >= 1000) throw new GameError('Server band');
     const game = new Game(user, { ...gameOptions, rules:{...gameOptions.rules,...(group?store.groupSettings(group.id):{})}, group }); rooms.set(game.id, game); if(group) game.deadline=game.now()+game.rules.registrationMs; store.save(game); return game;
   };
-  const state = (game, id) => ({ ...game.view(id), voice: { enabled: audio.allowed(game, id), configured: audio.enabled, transport: audio.enabled ? 'livekit' : 'not-configured' } });
+  const state = (game, id) => game.view(id);
   function startGame(game,id){for(const p of game.players)p.buffs={...store.inventory(p.id)};game.start(id);}
   async function advance(game) {
     if(game.phase==='lobby' && game.deadline!==null && game.now()>=game.deadline) {
       if(game.players.length>=game.rules.minPlayers) startGame(game,game.ownerId);
       else {game.deadline=null;game.touch();}
       store.save(game);publish(game);return;
-    }
-    if (game.deadline !== null && game.now() >= game.deadline && game.phase === 'discussion') {
-      try { await audio.close(game); } catch { throw new GameError('Ovozli xona yopilmoqda, biroz kuting'); }
     }
     if (game.tick()) { store.save(game); publish(game); }
   }
@@ -172,15 +168,11 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
         const data=await bot.photo(card.photoId);
         res.writeHead(200,{'Content-Type':'image/jpeg','Cache-Control':'public, max-age=300'});res.end(data);return;
       }
-      if (req.method === 'GET' && pathname === '/health') return json(200, { ok: true, stage: 'mini-app-v0.2', storage: dbPath === ':memory:' ? 'memory' : 'sqlite', voice: audio.enabled, demo });
-      if (req.method === 'GET' && pathname === '/api/config') return json(200, { botUsername: bot.username, demo, voice: audio.enabled });
+      if (req.method === 'GET' && pathname === '/health') return json(200, { ok: true, stage: 'mini-app-v0.2', storage: dbPath === ':memory:' ? 'memory' : 'sqlite', demo });
+      if (req.method === 'GET' && pathname === '/api/config') return json(200, { botUsername: bot.username, demo });
       if (req.method === 'POST' && pathname === '/telegram/webhook') {
         if (demo || !sameSecret(req.headers['x-telegram-bot-api-secret-token'], webhookSecret)) return json(403, { error: 'Forbidden' });
         const data = JSON.parse(await body(req)); await serial(() => updateBot(data)); return json(200, { ok: true });
-      }
-      if (req.method === 'POST' && pathname === '/livekit/webhook') {
-        if (!audio.enabled) return json(503, { error: 'Voice unavailable' });
-        const data = await body(req); await serial(() => audio.handleWebhook(data, req.headers.authorization, rooms)); return json(200, { ok: true });
       }
       if (req.method !== 'GET') return json(405, { error: 'Method not allowed' });
       const assets = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/app.css': ['app.css', 'text/css'], '/styles.css': ['styles.css', 'text/css'], '/theme.css': ['theme.css', 'text/css'], '/tabler.css': ['tabler.css', 'text/css'] };
@@ -272,8 +264,6 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
     });
     handle('game:last-words',async({text})=>{const game=await current();game.lastWords(user.id,text);store.save(game);publish(game);return {state:state(game,user.id)};});
     handle('game:chat',async({text})=>{const game=await current();game.sendChat(user.id,text);store.save(game);publish(game);return {state:state(game,user.id)};});
-    handle('voice:token', async () => { const game = await current(); return audio.token(game, user.id); });
-    handle('voice:ready', async () => { const game = await current(); await audio.ready(game, user.id); return {}; });
   });
   let ticking = false;
   const timer = setInterval(() => {
@@ -296,7 +286,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   validateProduction(process.env);
   const demo = process.env.DEMO_MODE === 'true';
   if (demo && process.env.NODE_ENV === 'production') throw new Error('Production’da demo rejimi taqiqlangan');
-  const app = createApp({ botToken: process.env.BOT_TOKEN, botUsername: process.env.BOT_USERNAME, origin: process.env.APP_ORIGIN, dbPath: process.env.DB_PATH || 'data/mafia.sqlite', webhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET, demo, voice: new Voice({ url: process.env.LIVEKIT_URL, apiKey: process.env.LIVEKIT_API_KEY, apiSecret: process.env.LIVEKIT_API_SECRET }) });
+  const app = createApp({ botToken: process.env.BOT_TOKEN, botUsername: process.env.BOT_USERNAME, origin: process.env.APP_ORIGIN, dbPath: process.env.DB_PATH || 'data/mafia.sqlite', webhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET, demo });
   const host = demo ? '127.0.0.1' : process.env.HOST || '127.0.0.1', port = Number(process.env.PORT || 3000);
   app.http.listen(port, host, () => console.log(`Mafia Mini App: http://${host}:${port}`));
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, async () => { await app.close(); process.exit(0); });

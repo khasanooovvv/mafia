@@ -15,7 +15,7 @@ Tuzatilganlar:
 
 - Docker build bosqichiga frontend import qiladigan `src` fayllari qo‘shildi.
 - Production ishga tushishidan oldin HTTPS origin, bot identifikatori,
-  webhook siri, doimiy DB va LiveKit konfiguratsiyasi tekshiriladi.
+  webhook siri, doimiy DB konfiguratsiyasi tekshiriladi.
 - Eski UI testlari yangi katalog va boshqaruvlarga moslashtirildi.
 
 VPSda qoladigan tekshiruvlar:
@@ -25,8 +25,9 @@ VPSda qoladigan tekshiruvlar:
 - Domen DNS va HTTPS, Telegram haqiqiy webhook yetkazilishi, telefon ichidagi
   Mini App va haqiqiy guruh o‘yini hali bu skan doirasida sinalmagan.
 - SQLite volume, restartdan keyin saqlanish va backup/restore VPSda tekshiriladi.
-- Agar ovoz ishlatilsa, LiveKit mikrofon ruxsati va ulanishi haqiqiy qurilmada sinaladi.
 - Yuklama testi qilinmagan. Hozir bir Node jarayoni va bitta SQLite bazasi ishlatiladi.
 
 Bu tekshiruv xatoliklar mutlaqo yo‘qligiga kafolat bermaydi; yuqoridagi
 integratsiya va infratuzilma sinovlari joylashdan keyin yakunlanadi.
+
+Keyingi o‘zgarish: ovoz integratsiyasi olib tashlandi; muhokama matnli chatda yoki Telegram guruhida.

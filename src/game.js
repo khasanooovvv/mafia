@@ -336,8 +336,7 @@ export class Game {
       me: { id, buffs:{...(me.buffs||{})}, role: roleOf(me), alive: me.alive, actionSubmitted: this.actions.has(id), nightAction: this.actions.has(id) ? { ...this.actions.get(id), targetIds:[...(this.actions.get(id).targetIds||[])] } : null, voteSubmitted: this.votes.has(id), confirmationSubmitted: this.confirmations.has(id),
         reports: this.reports.get(id) || [], kamikazeChoice: this.pendingKamikazeChooser === id,
         teammates: MAFIA.has(roleOf(me)) && me.role !== 'lawyer' ? this.players.filter(p => MAFIA.has(roleOf(p)) && p.role !== 'lawyer' && p.id !== id).map(p => p.id) : [],
-        faction: faction(me.role), commissionerId: me.role === 'sergeant' ? this.players.find(p => p.alive && p.role === 'commissioner')?.id ?? null : null },
-      voice: { enabled: this.phase === 'discussion' && me.alive, transport: 'not-configured' }
+        faction: faction(me.role), commissionerId: me.role === 'sergeant' ? this.players.find(p => p.alive && p.role === 'commissioner')?.id ?? null : null }
     };
   }
   snapshot() {

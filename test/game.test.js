@@ -35,15 +35,15 @@ test('private projection hides roles, actions, reports and other players votes',
   assert.deepEqual(game.view('2').me.reports, [{ round: 1, targetId: '0', role:'don', isMafia: true }]);
   assert.deepEqual(game.view('4').me.reports, []);
 });
-test('doctor protects; voice allowed only for alive players in discussion', () => {
+test('doctor protects; discussion starts after the night', () => {
   const { game, advance } = setup();
-  assert.equal(game.view('0').voice.enabled, false);
+
   game.nightAction('0', '4', game.revision); game.nightAction('1', '4', game.revision);
   game.nightAction('3', '4', game.revision); advance();
   assert.equal(game.member('4').alive, true); assert.equal(game.phase, 'discussion');
-  assert.equal(game.view('4').voice.enabled, true);
+
   assert.throws(() => game.vote('4', '0', game.revision)); advance();
-  assert.equal(game.view('4').voice.enabled, false);
+
 });
 test('night ties without a Don and voting ties eliminate nobody', () => {
   const { game, advance } = setup(); game.member('0').office=null;
@@ -70,7 +70,7 @@ test('full game ends in citizens win, dead players cannot act', () => {
   for (const id of ['2', '3', '4']) game.vote(id, '0', game.revision);
   advance(); for(const id of ['2','3','4'])game.vote(id,{confirm:true},game.revision); advance(); assert.equal(game.member('0').alive, false);
   assert.throws(() => game.nightAction('0', '4', game.revision));
-  advance(); assert.equal(game.view('0').voice.enabled, false); advance();
+  advance(); advance();
   for (const id of ['2', '3', '4']) game.vote(id, '1', game.revision);
   advance(); for(const id of ['2','3','4'])game.vote(id,{confirm:true},game.revision); advance(); assert.equal(game.phase, 'finished'); assert.equal(game.winner, 'citizens');
   assert.equal(game.deadline, null); assert.ok(game.view('0').players.every(p => p.role));

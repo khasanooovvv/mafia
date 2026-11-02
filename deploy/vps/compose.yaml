@@ -1,0 +1,33 @@
+name: mafia
+services:
+  app:
+    image: mafia-app:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3000
+      NODE_ENV: production
+      DB_PATH: /app/data/mafia.sqlite
+    volumes:
+      - mafia-data:/app/data
+    networks:
+      ingress:
+        aliases: [mafia-app]
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+volumes:
+  mafia-data:
+networks:
+  ingress:
+    external: true
+    name: xsnot_default
