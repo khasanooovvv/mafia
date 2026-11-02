@@ -16,7 +16,7 @@ COPY --from=build /app/public ./public
 COPY package*.json ./
 COPY src ./src
 COPY scripts/setup-bot.mjs ./scripts/setup-bot.mjs
-RUN mkdir /app/data && chown -R node:node /app
+RUN mkdir /app/data && chown node:node /app/data
 USER node
 EXPOSE 3000
 CMD ["node", "src/server.js"]
