@@ -1,0 +1,16 @@
+import { completeNight } from '../support/night-fixture.js';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { Game } from '../src/game.js';
+import { ROLE_ORDER } from '../src/settings.js';
+import { shouldDeleteGroupMessage } from '../src/moderation.js';
+function room(rules={}) {let now=0;const g=new Game({id:'0',name:'P0'},{now:()=>now,pick:n=>n-1,rules});for(let i=1;i<12;i++)g.join({id:String(i),name:'P'+i});g.start('0');return {g,next(){completeNight(g);now=g.deadline;g.tick();}};}
+test('mafia ratio and role order control allocation',()=>{const {g}=room({mafiaDivisor:4,roleOrder:['journalist',...ROLE_ORDER.filter(r=>r!=='journalist')]});assert.equal(g.players.filter(p=>p.role==='mafia').length,3);assert(g.players.some(p=>p.role==='journalist'));});
+test('commissioner shooting flags enforced by backend',()=>{for(const rules of [{commissionerShoot:false},{firstNightShoot:false}]){const {g}=room(rules);const p=g.players.find(p=>p.role==='commissioner'),t=g.players.find(other=>other.id!==p.id);assert.throws(()=>g.nightAction(p.id,{targetId:t.id,mode:'kill'},g.revision));g.nightAction(p.id,{targetId:t.id,mode:'check'},g.revision);}});
+test('hidden votes stay private; dead roles stay hidden when disabled',()=>{const {g,next}=room({hiddenVoting:true,revealRoles:false});next();next();g.vote('0',{targetId:'1'},g.revision);assert.equal(g.view('2').voting.votes.length,0);assert.equal(g.view('0').voting.votes.length,1);g.eliminate('3');assert.equal(g.view('2').players.find(p=>p.id==='3').role,undefined);});
+test('doctor cannot repeat patient when enabled',()=>{const {g,next}=room({doctorNoRepeat:true});const d=g.players.find(p=>p.role==='doctor'),t=g.players.find(p=>p.id!==d.id);g.nightAction(d.id,{targetId:t.id},g.revision);next();next();next();g.round++;g.setPhase('night');assert.throws(()=>g.nightAction(d.id,{targetId:t.id},g.revision));});
+test('Don search shares only commissioner result with mafia',()=>{const {g,next}=room({donSearch:true});const d=g.players.find(p=>p.office==='don'),c=g.players.find(p=>p.role==='commissioner');g.nightAction(d.id,{targetId:c.id,mode:'search'},g.revision);next();assert(c.alive);assert(g.reports.get(d.id).some(r=>r.donSearch&&r.isCommissioner));assert(!g.reports.get(c.id)?.some(r=>r.donSearch));});
+test('moderation rules isolate each category and stop after game',()=>{const {g}=room({blockDead:true,blockNight:true,blockOutsiders:true,deleteMedia:true,profanityFilter:true});assert(shouldDeleteGroupMessage(g,{from:{id:99},text:'hi'}));assert(shouldDeleteGroupMessage(g,{from:{id:1},text:'hi'}));g.setPhase('discussion');assert(!shouldDeleteGroupMessage(g,{from:{id:1},text:'hi'}));assert(shouldDeleteGroupMessage(g,{from:{id:1},photo:[{}]}));assert(shouldDeleteGroupMessage(g,{from:{id:1},text:'suka'}));g.phase='finished';assert(!shouldDeleteGroupMessage(g,{from:{id:99},text:'suka'}));});
+
+
+test('night kamikaze retaliates only when setting is enabled',()=>{for(const enabled of [false,true]){const {g,next}=room({kamikazeNight:enabled});const killer=g.players.find(p=>p.role==='mafia'&&!p.office),target=g.players.find(p=>p.role==='citizen');target.role='kamikaze';g.nightAction(killer.id,{targetId:target.id},g.revision);next();assert.equal(killer.alive,!enabled);assert.equal(target.alive,false);}});

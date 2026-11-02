@@ -8,17 +8,25 @@
     "test": "node --test",
     "build": "node scripts/build.mjs",
     "preview": "node scripts/preview.mjs",
-    "setup-bot": "node --env-file=.env scripts/setup-bot.mjs"
+    "setup-bot": "node --env-file=.env scripts/setup-bot.mjs",
+    "test:ui": "node scripts/check-ui.mjs"
   },
   "engines": {
     "node": ">=24"
   },
   "dependencies": {
+    "@phosphor-icons/core": "^2.1.1",
+    "@tabler/core": "^1.7.3",
+    "@telegram-apps/telegram-ui": "^2.1.13",
+    "html-react-parser": "^6.1.9",
     "livekit-client": "^2.23.0",
     "livekit-server-sdk": "^2.19.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "esbuild": "^0.28.2",
     "socket.io-client": "^4.8.1"
   }

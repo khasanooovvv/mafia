@@ -12,8 +12,8 @@ if (webhook.url && webhook.url !== url && !process.argv.includes('--replace-webh
 }
 const previousCommands = await bot.call('getMyCommands', {});
 const commands = new Map(previousCommands.map(c => [c.command, c]));
-for (const c of [{ command: 'mafia', description: 'Guruhda Mafia xonasini ochish' }, { command: 'start', description: 'Mini App’ni ochish' }, { command: 'help', description: 'O‘yin bo‘yicha yordam' }]) commands.set(c.command, c);
+for (const c of [{command:'game',description:'Guruhda yangi o‘yin ochish'},{command:'leave',description:'O‘yindan chiqish'},{command:'team',description:'Tunda maxfiy mafiya chatiga yozish'}, { command: 'mafia', description: 'Guruhda Mafia xonasini ochish' }, { command: 'start', description: 'O‘yinni boshlash yoki shaxsiy rolni ochish' }, { command: 'help', description: 'O‘yin bo‘yicha yordam' }]) commands.set(c.command, c);
 await bot.call('setMyCommands', { commands: [...commands.values()] });
 await bot.call('setChatMenuButton', { menu_button: { type: 'web_app', text: 'Mafia o‘ynash', web_app: { url: new URL(APP_ORIGIN).origin } } });
-await bot.call('setWebhook', { url, secret_token: TELEGRAM_WEBHOOK_SECRET, allowed_updates: ['message'], drop_pending_updates: false });
+await bot.call('setWebhook', { url, secret_token: TELEGRAM_WEBHOOK_SECRET, allowed_updates: ['message','callback_query'], drop_pending_updates: false });
 console.log('Bot menyusi, komandalar va webhook sozlandi. BotFather’da Main Mini App URL’ini ham APP_ORIGIN manziliga sozlang.');

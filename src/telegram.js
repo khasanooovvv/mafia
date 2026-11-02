@@ -9,6 +9,13 @@ export class Telegram {
     if (!response.ok || !data.ok) throw new GameError('Telegram so‘rovi bajarilmadi. Bot huquqlarini tekshiring.');
     return data.result;
   }
+  async photo(fileId) {
+    const file=await this.call('getFile',{file_id:fileId});
+    if(!/^[a-zA-Z0-9_./-]+$/.test(file.file_path||'') || file.file_path.includes('..'))throw new GameError('Rasm topilmadi');
+    const response=await this.fetcher(`https://api.telegram.org/file/bot${this.token}/${file.file_path}`,{signal:AbortSignal.timeout(10000)});
+    if(!response.ok)throw new GameError('Rasm yuklanmadi');
+    return Buffer.from(await response.arrayBuffer());
+  }
   link(roomId = '') {
     if (!/^[a-zA-Z0-9_]{5,32}$/.test(this.username)) throw new GameError('BOT_USERNAME sozlanmagan');
     return `https://t.me/${this.username}${roomId ? `?startapp=${encodeURIComponent(roomId)}` : '?startapp'}`;
@@ -18,7 +25,7 @@ export class Telegram {
     const allowed = admin ? ['creator', 'administrator'].includes(m.status) : ['creator', 'administrator', 'member'].includes(m.status) || (m.status === 'restricted' && m.is_member);
     if (!allowed) throw new GameError(admin ? 'Xonani guruh administratori ochadi' : 'Avval Telegram guruhiga a’zo bo‘ling');
   }
-  send(chatId, text, roomId = '') {
-    return this.call('sendMessage', { chat_id: chatId, text, reply_markup: { inline_keyboard: [[{ text: roomId ? '🎭 O‘yinga qo‘shilish' : '🎭 Mini App’ni ochish', url: this.link(roomId) }]] } });
+  send(chatId, text, roomId = '', buttonText = '', options = {}) {
+    return this.call('sendMessage', { chat_id: chatId, text, reply_markup: { inline_keyboard: [[{ text: buttonText || (roomId ? '🎭 O‘yinga qo‘shilish' : '🎭 Mini App’ni ochish'), url: this.link(roomId) }]] }, ...options });
   }
 }

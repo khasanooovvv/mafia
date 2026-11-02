@@ -15,5 +15,8 @@ export function authenticate(initData, token, now = Date.now()) {
   if (!Number.isSafeInteger(date) || age < -30 || age > 3600) throw new Error('Telegram sessiyasi eskirgan');
   const user = JSON.parse(params.get('user') || 'null');
   if (!user || !Number.isSafeInteger(user.id) || user.id <= 0 || typeof user.first_name !== 'string') throw new Error('Foydalanuvchi noto‘g‘ri');
-  return { id: String(user.id), name: user.first_name.slice(0, 80) };
+  const username = typeof user.username === 'string' && /^[a-zA-Z0-9_]{1,32}$/.test(user.username) ? user.username : null;
+  let photoUrl = null;
+  try { const url = new URL(user.photo_url); if (url.protocol === 'https:' && !url.username && !url.password) photoUrl = url.href; } catch {}
+  return { id: String(user.id), name: [user.first_name, typeof user.last_name === 'string' ? user.last_name : ''].filter(Boolean).join(' ').slice(0, 80), username, photoUrl };
 }

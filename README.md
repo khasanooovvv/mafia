@@ -5,7 +5,7 @@ Telegram Mini App, real-time o‘yin serveri, guruh bot integratsiyasi, SQLite v
 ## Tayyor qismlar
 
 - Xona yaratish, ochiq xonalarni ko‘rish, taklif havolasi, guruh xonasiga kirish.
-- Aylana o‘yin stoli, yashirin rol kartasi, taymer, tun harakatlari, ovoz berish, natija.
+- True Mafia uslubidagi 16 rol, yashirin rol kartasi, tun harakatlari, kun ovozi va hukmni tasdiqlash.
 - Telegram HMAC autentifikatsiyasi. Mijozga faqat o‘z roli va ruxsat etilgan ma’lumot yuboriladi.
 - `/mafia` guruh komandasi, administrator tekshiruvi, a’zolik tekshiruvi, takroriy webhook himoyasi.
 - SQLite: xonalar, rollar, harakatlar, ovozlar, muddatlar va yakuniy natijalar diskda saqlanadi.
@@ -47,16 +47,25 @@ Lokal backend (HTTPS tashqi reverse proxy orqali): `npm start`. `GET /health` xi
 
 ## O‘yin qoidalari
 
-- 6–12 o‘yinchi. Mafiya: `floor(N/3)`, bitta komissar, bitta shifokor, qolganlar tinch aholi.
-- Tun 45 s → muhokama 90 s → ovoz berish 30 s.
-- Harakat/ovoz bir marta yuboriladi; keyin o‘zgarmaydi. O‘ziga ovoz berilmaydi. Shifokor o‘zini yoki bir kishini takroriy tunlarda himoya qilishi mumkin.
-- Mafiya ovozlari yoki kunduzgi ovozlar teng bo‘lsa hech kim chiqmaydi. Komissar natijani tun tugaganda oladi.
-- Mafiya qolmasa aholi g‘olib. Mafiya soni qolgan tirik o‘yinchilarga teng/ko‘p bo‘lsa mafiya g‘olib.
+- 6–20 o‘yinchi. Mafiya oilasi `floor(N/3)`; ulardan biri Don. Asosiy rollar: Tinch aholi, Don, Mafiya, Komissar va Shifokor.
+- O‘yinchilar soni oshgani sari qo‘shimcha rollar ochiladi: 7 — Omadli; 8 — O‘zini osdiruvchi va Kamikadze; 10 — Darbadar; 12 — Ma’shuqa; 14 — Serjant va Tansoqchi; 16 — Manyak; 18 — Advokat va Mer; 20 — Jurnalist. O‘yinda 16 ta rol turi bor.
+- Davra: tun 45 s → muhokama 90 s → ovoz 30 s → hukmni tasdiqlash 30 s.
+- Don tirik Mafia bilan tunda nishonni belgilaydi; Don halok bo‘lsa boshqa tirik Mafiya uning vazifasini oladi. Advokat Mafiyani komissar tekshiruvidan bir kecha yashiradi.
+- Komissar har kecha aniq rolni tekshiradi yoki otadi; tekshiruv Serjantga ham boradi. Komissar halok bo‘lsa, Serjant uning o‘rnini oladi. Shifokor davolaydi va o‘zini faqat bir marta qutqaradi.
+- Ma’shuqa tanlagan o‘yinchining tungi harakatini to‘xtatadi. Tansoqchi boshqa o‘yinchini qo‘riqlab, oddiy hujumda uning o‘rniga halok bo‘ladi. Omadli kishi tunda bir marta 2/3 ehtimol bilan omon qoladi.
+- Darbadar tanlagan o‘yinchiga borgan rollarni biladi; Jurnalist ikki o‘yinchi bir tomondami, shuni biladi. Merning kunduzgi ovozi ikki hissa sanaladi. Manyak har kecha alohida hujum qiladi; yakka qolsa yutadi.
+- Suidsid kunduzgi hukm bilan osilsa, o‘yin davom etadi va Mafia yoki shahar yakuniy g‘alabasiga sherik bo‘ladi. Kamikadze chiqarilsa, qasos nishonini tanlaydi; Shifokor yoki Tansoqchi uni qutqara oladi.
+- Kunduzgi nomzodning chiqarilishi alohida ovozda tasdiqlanishi kerak; tasdiq ovozlari rad ovozlaridan ko‘p bo‘lmasa hech kim chiqarilmaydi. Teng ovozda ham hech kim chiqmaydi.
+- Mafiya qolmasa va Manyak ham yo‘q bo‘lsa shahar yutadi. Mafiya tiriklarning kamida yarmiga tenglashsa mafiya yutadi. Manyak oxirgi tirik o‘yinchi bo‘lsa yolg‘iz yutadi.
 - O‘yindan chiqqanlar kuzatadi, harakat/ovoz yubora olmaydi va ovozli chatga kirmaydi.
 - Uzilish o‘yinni to‘xtatmaydi; qayta kirishda holat tiklanadi. 2 soatdan oshgan o‘yin keyingi faza chegarasida durang bilan yakunlanadi.
 - Server qayta ishga tushganda o‘tib ketgan faza bir marta yakunlanadi va keyingi fazaga to‘liq vaqt beriladi.
 
 ## Reyting qoidalari
+
+Profil va shaxsiy reyting bir xil hisoblangan o‘yinlardan olinadi: faqat faol ishtirok va ochko berilgan o‘yinlar, ularning g‘alabalari va ochkolari ko‘rsatiladi. Hisobga kirmagan o‘yinlar profil g‘alabalarini ham oshirmaydi. O‘yindan chiqarilgan faol ishtirokchi jamoasi yutsa ham g‘alaba oladi. Natijalar Telegram ID bo‘yicha saqlanadi; ism yoki username o‘zgarishi ochkolarni boshqa hisobga ko‘chirmaydi.
+
+Ism, @username va profil rasmi imzosi tekshirilgan Telegram Mini App ma’lumotidan olinadi. Telegram rasmni bermasa yoki rasm yuklanmasa ismning bosh harfi ko‘rsatiladi. O‘zgargan profil Mini App qayta ochilganda yangi Telegram sessiyasidan olinadi.
 
 Hisobga olinishi uchun: o‘yin yakunlangan, haqiqiy g‘olib bor, kamida 6 o‘yinchi, kamida 3 daqiqa davom etgan va kamida yarmi biror harakat/ovoz yuborgan bo‘lishi kerak.
 
@@ -90,8 +99,9 @@ Socket ulanishi: `io({auth:{initData:Telegram.WebApp.initData}})`. Sessiya bir s
 | `room:leave` | `{}` | Lobbidan chiqish |
 | `game:start` | `{}` | Egasi boshlaydi |
 | `game:sync` | `{}` | Shaxsiy holat |
-| `game:night-action` | `{targetId,revision}` | Tungi harakat |
-| `game:vote` | `{targetId,revision}` | Ovoz |
+| `game:night-action` | `{targetId,mode?,targetIds?,revision}` | Tungi harakat (`mode`: Komissar uchun `check`/`kill`; Jurnalistga 2 ta `targetIds`) |
+| `game:kamikaze` | `{targetId,revision}` | Chiqarilgan Kamikadzening qasos nishoni |
+| `game:vote` | `{targetId,revision}` yoki `{confirm:boolean,revision}` | Kunduzgi ovoz / hukm tasdig‘i |
 | `voice:token` | `{}` | Cheklangan media token |
 | `voice:ready` | `{}` | Server mikrofon ruxsatini beradi |
 
@@ -106,3 +116,72 @@ Bitta jarayon va SQLite kichik boshlang‘ich ishga tushirish uchun. Bir nechta 
 SQLite backup: serverni to‘xtatib `data` katalogini barcha WAL fayllari bilan nusxalang yoki SQLite backup vositasidan foydalaning. Faqat ishlayotgan `.sqlite` faylini yolg‘iz nusxalash tavsiya etilmaydi.
 
 Manbalar: [Telegram Mini Apps](https://core.telegram.org/bots/webapps), [Telegram Bot API](https://core.telegram.org/bots/api), [LiveKit participant permissions](https://docs.livekit.io/intro/basics/rooms-participants-tracks/participants/).
+
+## React / Telegram UI interface
+
+The view layer uses React 18 and @telegram-apps/telegram-ui (AppRoot, Button,
+Input and Tabbar.Item). client/ui.js converts the existing escaped view templates
+into React elements so the socket/game controller keeps its established behavior.
+client/appearance.css owns semantic light/dark colors and responsive overrides.
+Telegram colorScheme/themeChanged takes priority inside Telegram; standalone
+browsers follow prefers-color-scheme and update without a reload. Insets from
+Telegram and the device are reserved for navigation. Cards retain their artwork.
+
+Build: npm run build. UI smoke tests: npm run test:ui (Microsoft Edge installed).
+Tests cover 360/390/768/1280px, both themes, navigation, all 19 catalog cards,
+demo game actions and live Telegram theme changes with a mocked Telegram host.
+Real Telegram device testing remains a separate check; these UI tests do not
+validate production audio. Backend game rules are covered by npm test.
+
+## Guruh boshqaruvi
+
+Profil → Guruhlarim orqali ochiq guruh @username yoki guruh ID bilan ulanadi.
+Yopiq guruhda admin /sozlash buyrug‘ini yuboradi, keyin profilda ro‘yxatni yangilaydi.
+Bot ham guruhda administrator bo‘lishi kerak. Har ulash/saqlashda Telegram orqali
+foydalanuvchi va bot huquqlari qayta tekshiriladi. Sozlamalar SQLite’da saqlanadi.
+Minimal/maksimal o‘yinchilar (6–20) va to‘rt faza vaqti (10–600 soniya) sozlanadi.
+Sozlama yangi /mafia xonasiga qo‘llanadi; faol xona o‘zgarmaydi.
+Demo interfeys guruhni haqiqiy ulash yoki sozlamalarni saqlashni taqlid qilmaydi.
+Tekshiruv: node --test test/groups.test.js test/telegram.test.js
+
+### Guruhning qo‘shimcha qoidalari
+
+Guruhlarim sozlamalarida qo‘shimcha rollar yoqiladi/o‘chiriladi. Mafiya va tinch
+aholi asosiy rollar bo‘lib qoladi. Rollarning mavjud o‘yinchi-soni chegaralari saqlanadi.
+Tungi harakatni va kunduz ovozini o‘tkazish alohida yoqiladi (dastlab o‘chiq).
+Jurnalist maqolasi umumiy Mini App o‘yin ekranida anonim ko‘rsatiladi.
+Tekshiruv bildirishnomasi Komissar/Jurnalist nishoniga shaxsiy o‘yin hisobotida
+chiqadi; tekshiruvchi shaxsi va roli oshkor qilinmaydi. Bular Telegram guruhiga yoki
+shaxsiy chatga alohida xabar yubormaydi. Bloklangan va o‘tkazilgan harakat xabar yaratmaydi.
+Qo‘shimcha qoidalar sinovi: node --test test/options.test.js test/groups.test.js
+
+
+## Telegram va Mini App’da birgalikda o‘ynash
+
+Admin guruhda `/mafia` yoki `/game` bilan xona ochadi. “Telegram orqali
+qo‘shilish” botning shaxsiy chatini ochadi va shu xonaga ulaydi. Guruhdagi
+`/start` yoki boshlash tugmasi o‘yinni boshlaydi. Rollar, tungi nishonlar,
+Komissar tekshiruvi va boshqa maxfiy natijalar faqat shaxsiy chatga yuboriladi.
+Ovoz berish va hukm tasdig‘i guruh tugmalari yoki shaxsiy chatdan bajariladi.
+`/start` yoki `/game` shaxsiy chatda joriy o‘yin va yangi tugmalarni qayta ochadi.
+`/leave` o‘yindan chiqaradi; faol o‘yinda odatiy chiqish cheklovi amal qiladi.
+Tunda Don va mafiyalar `/team xabar` bilan maxfiy jamoaga yozishi mumkin.
+
+Telegram va Mini App bitta Game holatidan foydalanadi: bir kanalda qilingan
+harakatni ikkinchisida takrorlash mumkin emas. Reyting, hamyon va haftalik
+mukofotlar bir xil natijadan hisoblanadi. Bot bloklangan bo‘lsa, uni shaxsiy
+chatda ochib `/start` yuborish kerak; yashirin rol guruhga yuborilmaydi.
+
+Mavjud botni ishga tushirishda `npm run setup-bot` orqali webhook’dagi
+`allowed_updates` ichiga `callback_query` ham qo‘shilishi kerak. Ushbu o‘zgarish
+lokal demo orqali haqiqiy Telegram akkauntiga xabar jo‘natmaydi.
+Sinov: `node --test test/telegram-game.test.js test/telegram.test.js test/group-voting.test.js`.
+
+
+## VPS oldidan tekshiruv
+
+2026-11-02 tekshiruvi: [tekshiruv hisoboti](SCAN-REPORT.md).
+Production ishga tushishda HTTPS APP_ORIGIN (oxirida slashsiz), BOT_USERNAME,
+BOT_TOKEN va 32–256 belgili TELEGRAM_WEBHOOK_SECRET tekshiriladi.
+Xotiradagi DB va demo rejimi production’da taqiqlangan.
+LiveKit kerak bo‘lmasa uning uchta qiymatini ham bo‘sh qoldiring.

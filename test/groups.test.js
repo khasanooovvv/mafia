@@ -1,0 +1,54 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { io } from 'socket.io-client';
+import { createApp } from '../src/server.js';
+import { DEFAULT_RULES, GameError } from '../src/game.js';
+import { TOKEN,signed } from '../support/signing.js';
+import { ROLE_ORDER } from '../src/settings.js';
+import { Store } from '../src/store.js';
+
+test('group rankings include Telegram identity and a local photo URL',async t=>{
+ let calls=0;
+ const bot={username:'test_bot',call:async()=>{calls++;return {title:'Updated group',username:'public_group',photo:{small_file_id:'photo-file'}};},photo:async()=>Buffer.from('image')};
+ const app=createApp({botToken:TOKEN,telegram:bot});await new Promise(r=>app.http.listen(0,'127.0.0.1',r));
+ const url=`http://127.0.0.1:${app.http.address().port}`;
+ app.store.db.prepare('INSERT INTO results VALUES(?,?,?,?,?,?,?)').run('rank-test',Date.now(),'-100123','Old name','roster',1,16);
+ app.store.db.prepare('INSERT INTO scores VALUES(?,?,?,?,?)').run('rank-test','2','Player Two',5,1);
+ const c=io(url,{auth:{initData:signed(1)},forceNew:true});t.after(async()=>{c.disconnect();await app.close();});
+ await new Promise((r,j)=>{c.once('connect',r);c.once('connect_error',j);});
+ const result=await c.timeout(3000).emitWithAck('rankings:get',{period:'all'});
+ const stats=await c.timeout(3000).emitWithAck('players:profile',{userId:'2'});
+ assert.deepEqual(stats.player,{id:'2',name:'Player Two',games:1,wins:1,points:5});
+ assert.equal(Object.hasOwn(stats.player,'coins'),false);
+ assert.equal((await c.timeout(3000).emitWithAck('players:profile',{userId:'bad'})).ok,false);
+ assert.equal((await c.timeout(3000).emitWithAck('players:profile',{userId:'999'})).ok,false);
+ assert.equal(result.ok,true);assert.equal(result.groups[0].name,'Updated group');assert.equal(result.groups[0].url,'https://t.me/public_group');assert.equal(result.groups[0].photoUrl,'/api/group-photo/-100123');
+ await c.timeout(3000).emitWithAck('rankings:get',{period:'all'});assert.equal(calls,1);
+ const photo=await fetch(url+result.groups[0].photoUrl);assert.equal(photo.status,200);assert.equal(await photo.text(),'image');
+ assert.equal((await fetch(url+'/api/group-photo/-100999')).status,404);
+});
+test('group management verifies both admins, validates settings and applies them to future rooms',async t=>{
+ let admin=true,botAdmin=true;
+ const bot={username:'test_bot',call:async(method)=>method==='getMe'?{id:99}:{id:-1001,type:'supergroup',title:'Test group'},member:async(g,u,required)=>{assert.equal(required,true);if(u==='99'?!botAdmin:u!=='1'||!admin)throw new GameError('Admin talab qilinadi');},send:async()=>{}};
+ const app=createApp({botToken:TOKEN,telegram:bot,webhookSecret:'secret'});await new Promise(r=>app.http.listen(0,'127.0.0.1',r));
+ const url=`http://127.0.0.1:${app.http.address().port}`;
+ const clients=[];t.after(async()=>{clients.forEach(c=>c.disconnect());await app.close();});
+ async function connect(id){const c=io(url,{auth:{initData:signed(id)},forceNew:true});clients.push(c);await new Promise((r,j)=>{c.once('connect',r);c.once('connect_error',j)});return c;}
+ const owner=await connect(1),other=await connect(2),ask=(c,e,p={})=>c.timeout(3000).emitWithAck(e,p);
+ assert.equal((await ask(other,'groups:add',{ref:'@groupname'})).ok,false);
+ botAdmin=false;assert.equal((await ask(owner,'groups:add',{ref:'@groupname'})).ok,false);botAdmin=true;
+ assert.equal((await ask(owner,'groups:add',{ref:'@groupname'})).ok,true);
+ const settings={...DEFAULT_RULES,maxPlayers:12,discussionMs:120000,hiddenVoting:true,mafiaDivisor:4,doctorNoRepeat:true,enableBuffs:true,roleOrder:[...ROLE_ORDER].reverse()};
+ assert.equal((await ask(owner,'groups:save',{groupId:'-1001',settings:{...settings,maxPlayers:5}})).ok,false);
+ assert.equal((await ask(owner,'groups:save',{groupId:'-1001',settings:{...settings,hiddenVoting:'true'}})).ok,false);
+ assert.equal((await ask(owner,'groups:save',{groupId:'-1001',settings:{...settings,roleOrder:['doctor']}})).ok,false);
+ assert.equal((await ask(owner,'groups:save',{groupId:'-1001',settings})).ok,true);
+ assert.equal((await ask(other,'groups:save',{groupId:'-1001',settings})).ok,false);
+ assert.equal((await ask(owner,'groups:list')).groups[0].settings.discussionMs,120000);
+ const post=body=>fetch(url+'/telegram/webhook',{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Bot-Api-Secret-Token':'secret'},body:JSON.stringify(body)});
+ assert.equal((await post({update_id:1,message:{from:{id:1},chat:{id:-1001,type:'supergroup',title:'Test group'},text:'/mafia'}})).status,200);
+ assert.equal([...app.rooms.values()][0].rules.discussionMs,120000);
+ assert.equal([...app.rooms.values()][0].rules.hiddenVoting,true);assert.equal([...app.rooms.values()][0].rules.mafiaDivisor,4);assert.equal([...app.rooms.values()][0].rules.enableBuffs,true);assert.deepEqual([...app.rooms.values()][0].rules.roleOrder,[...ROLE_ORDER].reverse());
+ admin=false;assert.equal((await ask(owner,'groups:save',{groupId:'-1001',settings})).ok,false);assert.equal((await ask(owner,'groups:list')).groups.length,0);
+});
+test('managed group settings persist and groups are isolated by admin',()=>{const s=new Store();s.manageGroup({id:'-1',name:'Group'},'1',{maxPlayers:12});assert.equal(s.groupSettings('-1').maxPlayers,12);assert.equal(s.managedGroups('2').length,0);assert.equal(s.managedGroups('1').length,1);s.close();});

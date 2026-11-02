@@ -3,6 +3,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY client ./client
+COPY src ./src
 COPY scripts/build.mjs ./scripts/build.mjs
 COPY public ./public
 RUN npm run build && npm prune --omit=dev

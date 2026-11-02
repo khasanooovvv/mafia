@@ -1,0 +1,11 @@
+import { chromium } from '@playwright/test';
+const browser = await chromium.launch({channel:'msedge',headless:true});
+const page=await browser.newPage({viewport:{width:390,height:844},colorScheme:'light'});
+page.on('pageerror',e=>console.log('ERROR',e.message));
+await page.goto('http://127.0.0.1:3000');
+await page.waitForSelector('.hero');
+await page.screenshot({path:process.env.TEMP+'/mafia-light.png',fullPage:true});
+console.log(await page.evaluate(()=>({theme:document.documentElement.dataset.theme,width:document.documentElement.scrollWidth,viewport:innerWidth,buttons:document.querySelectorAll('.telegram-control').length})));
+await page.emulateMedia({colorScheme:'dark'});
+await page.screenshot({path:process.env.TEMP+'/mafia-dark.png',fullPage:true});
+await browser.close();

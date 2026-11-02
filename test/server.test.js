@@ -1,3 +1,4 @@
+import { completeNight } from '../support/night-fixture.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { io } from 'socket.io-client';
@@ -28,16 +29,16 @@ test('six authenticated sockets play a full game; reconnect and isolation', asyn
   const outsider = await connect(99); assert.equal((await ask(outsider, 'game:sync')).ok, false);
   assert.equal((await ask(outsider, 'room:join', { roomId })).ok, false);
   const game = app.rooms.get(roomId);
-  const advance = () => { game.deadline = 0; game.tick(); };
+  const advance = () => { completeNight(game); game.deadline = 0; game.tick(); };
   advance(); advance();
-  const mafias = states.filter(r => r.state.me.role === 'mafia').map(r => r.state.me.id);
+  const mafias = states.filter(r => ['mafia','don'].includes(r.state.me.role)).map(r => r.state.me.id);
   for (const targetId of mafias) {
     for (let i = 0; i < peers.length; i++) {
       if (game.member(String(i + 1)).alive && String(i + 1) !== targetId) {
         assert.equal((await ask(peers[i], 'game:vote', { targetId, revision: game.revision })).ok, true);
       }
     }
-    advance(); if (game.phase !== 'finished') { advance(); advance(); }
+    advance(); for(let i=0;i<peers.length;i++)if(game.member(String(i+1)).alive)assert.equal((await ask(peers[i],'game:vote',{confirm:true,revision:game.revision})).ok,true); advance(); if (game.phase !== 'finished') { advance(); advance(); }
   }
   assert.equal((await ask(peers[0], 'game:sync')).state.winner, 'citizens');
   const invalid = io(url, { auth: { initData: 'forged' }, forceNew: true, reconnection: false }); clients.push(invalid);

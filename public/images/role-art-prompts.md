@@ -1,0 +1,60 @@
+# Role art prompts
+
+Generated using built-in image_gen; one final PNG per role.
+
+## commissioner
+
+Create exactly ONE final 2D role icon for a Mafia card game, not multiple versions. Subject: an ivory detective shield badge with a burgundy star and a round black magnifying glass overlapping its edge; recognizable police investigator emblem. Strictly flat 2D illustrated sticker with simple solid color shapes and thick BLACK outlines. Black, ivory and the accent colors specified. NO 3D, NO realism, NO gradients, NO cast shadows, NO volumetric lighting, NO glossy highlights, NO textures. Bold readable silhouette, few details, all parts fully in frame, centered occupying 75% of a square canvas with 12% margin. Genuine TRANSPARENT background. No text, no lettering, no watermark, no frame, no contact sheet. Cohesive style with a flat cartoon black fedora with red band and simple gold crown pin. This is a single inventory emblem, not a full character portrait.
+
+## sergeant
+
+Create exactly ONE final 2D role icon for a Mafia card game, not multiple versions. Subject: a black police shoulder epaulette with exactly three GOLD chevrons and an ivory border; a simple sergeant insignia. Strictly flat 2D illustrated sticker with simple solid color shapes and thick BLACK outlines. Black, ivory and the accent colors specified. NO 3D, NO realism, NO gradients, NO cast shadows, NO volumetric lighting, NO glossy highlights, NO textures. Bold readable silhouette, few details, all parts fully in frame, centered occupying 75% of a square canvas with 12% margin. Genuine TRANSPARENT background. No text, no lettering, no watermark, no frame, no contact sheet. Cohesive style with a flat cartoon black fedora with red band and simple gold crown pin. This is a single inventory emblem, not a full character portrait.
+
+## doctor
+
+Create exactly ONE final 2D role icon for a Mafia card game, not multiple versions. Subject: an ivory medical bag with black handle and a large burgundy plus symbol; doctor equipment. Strictly flat 2D illustrated sticker with simple solid color shapes and thick BLACK outlines. Black, ivory and the accent colors specified. NO 3D, NO realism, NO gradients, NO cast shadows, NO volumetric lighting, NO glossy highlights, NO textures. Bold readable silhouette, few details, all parts fully in frame, centered occupying 75% of a square canvas with 12% margin. Genuine TRANSPARENT background. No text, no lettering, no watermark, no frame, no contact sheet. Cohesive style with a flat cartoon black fedora with red band and simple gold crown pin. This is a single inventory emblem, not a full character portrait.
+
+## maniac
+
+Create exactly ONE final 2D role icon for a Mafia card game, not multiple versions. Subject: one black-handled ivory dagger pointing diagonally up, with a tiny burgundy ribbon at the handle; fictional game villain symbol, no blood, no injury. Strictly flat 2D illustrated sticker with simple solid color shapes and thick BLACK outlines. Black, ivory and the accent colors specified. NO 3D, NO realism, NO gradients, NO cast shadows, NO volumetric lighting, NO glossy highlights, NO textures. Bold readable silhouette, few details, all parts fully in frame, centered occupying 75% of a square canvas with 12% margin. Genuine TRANSPARENT background. No text, no lettering, no watermark, no frame, no contact sheet. Cohesive style with a flat cartoon black fedora with red band and simple gold crown pin. This is a single inventory emblem, not a full character portrait.
+
+## mistress
+
+Create exactly ONE final 2D role icon for a Mafia card game, not multiple versions. Subject: a burgundy folding hand fan with black ribs and a small ivory rose; elegant distracting enchantress symbol. Strictly flat 2D illustrated sticker with simple solid color shapes and thick BLACK outlines. Black, ivory and the accent colors specified. NO 3D, NO realism, NO gradients, NO cast shadows, NO volumetric lighting, NO glossy highlights, NO textures. Bold readable silhouette, few details, all parts fully in frame, centered occupying 75% of a square canvas with 12% margin. Genuine TRANSPARENT background. No text, no lettering, no watermark, no frame, no contact sheet. Cohesive style with a flat cartoon black fedora with red band and simple gold crown pin. This is a single inventory emblem, not a full character portrait.
+
+## lawyer
+
+Create exactly ONE final 2D role icon for a Mafia card game, not multiple versions. Subject: a gold justice balance scale with black center support and two ivory pans, symmetrical front view; attorney symbol. Strictly flat 2D illustrated sticker with simple solid color shapes and thick BLACK outlines. Black, ivory and the accent colors specified. NO 3D, NO realism, NO gradients, NO cast shadows, NO volumetric lighting, NO glossy highlights, NO textures. Bold readable silhouette, few details, all parts fully in frame, centered occupying 75% of a square canvas with 12% margin. Genuine TRANSPARENT background. No text, no lettering, no watermark, no frame, no contact sheet. Cohesive style with a flat cartoon black fedora with red band and simple gold crown pin. This is a single inventory emblem, not a full character portrait.
+
+## suicide
+
+Create exactly ONE final 2D role icon for a Mafia card game, not multiple versions. Subject: a sad ivory theatrical jester mask with a burgundy diamond on the forehead and a single small decorative crack; symbolizes the Mafia game jester who wants to be voted out, no rope, no injury, no self-harm depiction. Strictly flat 2D illustrated sticker with simple solid color shapes and thick BLACK outlines. Black, ivory and the accent colors specified. NO 3D, NO realism, NO gradients, NO cast shadows, NO volumetric lighting, NO glossy highlights, NO textures. Bold readable silhouette, few details, all parts fully in frame, centered occupying 75% of a square canvas with 12% margin. Genuine TRANSPARENT background. No text, no lettering, no watermark, no frame, no contact sheet. Cohesive style with a flat cartoon black fedora with red band and simple gold crown pin. This is a single inventory emblem, not a full character portrait.
+
+## hobo
+
+Create exactly ONE final 2D role icon for a Mafia card game, not multiple versions. Subject: an ivory patched bundle tied to a brown walking stick with a burgundy knot; wandering traveler bindle. Strictly flat 2D illustrated sticker with simple solid color shapes and thick BLACK outlines. Black, ivory and the accent colors specified. NO 3D, NO realism, NO gradients, NO cast shadows, NO volumetric lighting, NO glossy highlights, NO textures. Bold readable silhouette, few details, all parts fully in frame, centered occupying 75% of a square canvas with 12% margin. Genuine TRANSPARENT background. No text, no lettering, no watermark, no frame, no contact sheet. Cohesive style with a flat cartoon black fedora with red band and simple gold crown pin. This is a single inventory emblem, not a full character portrait.
+
+## lucky
+
+Create exactly ONE final 2D role icon for a Mafia card game, not multiple versions. Subject: a large green four-leaf clover with one plain gold coin at its base; luck symbol. Strictly flat 2D illustrated sticker with simple solid color shapes and thick BLACK outlines. Black, ivory and the accent colors specified. NO 3D, NO realism, NO gradients, NO cast shadows, NO volumetric lighting, NO glossy highlights, NO textures. Bold readable silhouette, few details, all parts fully in frame, centered occupying 75% of a square canvas with 12% margin. Genuine TRANSPARENT background. No text, no lettering, no watermark, no frame, no contact sheet. Cohesive style with a flat cartoon black fedora with red band and simple gold crown pin. This is a single inventory emblem, not a full character portrait.
+
+## kamikaze
+
+Create exactly ONE final 2D role icon for a Mafia card game, not multiple versions. Subject: one simple round black cartoon bomb with a short ivory fuse and a tiny flat gold spark; fictional game inventory symbol, no explosion scene, no instructions. Strictly flat 2D illustrated sticker with simple solid color shapes and thick BLACK outlines. Black, ivory and the accent colors specified. NO 3D, NO realism, NO gradients, NO cast shadows, NO volumetric lighting, NO glossy highlights, NO textures. Bold readable silhouette, few details, all parts fully in frame, centered occupying 75% of a square canvas with 12% margin. Genuine TRANSPARENT background. No text, no lettering, no watermark, no frame, no contact sheet. Cohesive style with a flat cartoon black fedora with red band and simple gold crown pin. This is a single inventory emblem, not a full character portrait.
+
+## bodyguard
+
+Create exactly ONE final 2D role icon for a Mafia card game, not multiple versions. Subject: one ivory protective shield with a black inner panel and a burgundy chevron in its center; bodyguard protection symbol. Strictly flat 2D illustrated sticker with simple solid color shapes and thick BLACK outlines. Black, ivory and the accent colors specified. NO 3D, NO realism, NO gradients, NO cast shadows, NO volumetric lighting, NO glossy highlights, NO textures. Bold readable silhouette, few details, all parts fully in frame, centered occupying 75% of a square canvas with 12% margin. Genuine TRANSPARENT background. No text, no lettering, no watermark, no frame, no contact sheet. Cohesive style with a flat cartoon black fedora with red band and simple gold crown pin. This is a single inventory emblem, not a full character portrait.
+
+## mayor
+
+Create exactly ONE final 2D role icon for a Mafia card game, not multiple versions. Subject: a small ivory town hall facade with four black columns and a burgundy triangular roof; civic mayor symbol. Strictly flat 2D illustrated sticker with simple solid color shapes and thick BLACK outlines. Black, ivory and the accent colors specified. NO 3D, NO realism, NO gradients, NO cast shadows, NO volumetric lighting, NO glossy highlights, NO textures. Bold readable silhouette, few details, all parts fully in frame, centered occupying 75% of a square canvas with 12% margin. Genuine TRANSPARENT background. No text, no lettering, no watermark, no frame, no contact sheet. Cohesive style with a flat cartoon black fedora with red band and simple gold crown pin. This is a single inventory emblem, not a full character portrait.
+
+## journalist
+
+Create exactly ONE final 2D role icon for a Mafia card game, not multiple versions. Subject: a simple black vintage camera with a large ivory lens circle beside a burgundy microphone; press reporter equipment. Strictly flat 2D illustrated sticker with simple solid color shapes and thick BLACK outlines. Black, ivory and the accent colors specified. NO 3D, NO realism, NO gradients, NO cast shadows, NO volumetric lighting, NO glossy highlights, NO textures. Bold readable silhouette, few details, all parts fully in frame, centered occupying 75% of a square canvas with 12% margin. Genuine TRANSPARENT background. No text, no lettering, no watermark, no frame, no contact sheet. Cohesive style with a flat cartoon black fedora with red band and simple gold crown pin. This is a single inventory emblem, not a full character portrait.
+
+## citizen
+
+Create exactly ONE final 2D role icon for a Mafia card game, not multiple versions. Subject: one ivory house with a black roof and burgundy door, with a plain gold key beside it; peaceful citizen symbol. Strictly flat 2D illustrated sticker with simple solid color shapes and thick BLACK outlines. Black, ivory and the accent colors specified. NO 3D, NO realism, NO gradients, NO cast shadows, NO volumetric lighting, NO glossy highlights, NO textures. Bold readable silhouette, few details, all parts fully in frame, centered occupying 75% of a square canvas with 12% margin. Genuine TRANSPARENT background. No text, no lettering, no watermark, no frame, no contact sheet. Cohesive style with a flat cartoon black fedora with red band and simple gold crown pin. This is a single inventory emblem, not a full character portrait.
+

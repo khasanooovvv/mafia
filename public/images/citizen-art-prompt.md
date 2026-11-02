@@ -1,0 +1,2 @@
+Generated with built-in ImageGen.
+Prompt: ONE transparent illustration for the Tinch aholi role card: peaceful city neighborhood, three to five buildings and central street, no people. Flat 2D cartoon, bold black outlines, ivory, burgundy, charcoal and muted gold. Front elevation, centered square composition with margins. No text, frame, 3D, gradients, gloss or realistic lighting. One final image only.
