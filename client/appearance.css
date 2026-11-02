@@ -172,3 +172,33 @@ dialog,dialog .catalog-grid,dialog .chat-log,dialog .choice-sheet{overscroll-beh
 .rank-list .official-group-badge{display:inline-flex;flex:0 0 18px;width:18px;height:18px;margin:0;background:none;border-radius:0;align-items:center;justify-content:center}
 .official-group-badge svg{display:block;width:100%;height:100%}
 @media(max-width:370px){.rank-filters button{font-size:10px;padding:4px 7px}.rank-filters{gap:4px}.rank-list.card{padding:0 10px}.rank-list .leader-row{gap:7px}}
+
+/* Shared chrome and compact profile/referral layouts. */
+.workspace>header,.workspace>footer{display:none!important}
+.workspace>main{padding-top:24px;padding-bottom:calc(110px + var(--app-safe-bottom,0px))}
+.profile-card .profile-cover{height:76px}
+.profile-card .profile-head{margin-top:-52px;padding-bottom:8px}
+.profile-card .profile-head .avatar{width:104px;height:104px;border-width:5px;overflow:hidden}
+.profile-card .profile-head .avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.profile-card .profile-head h2{margin:12px 0 5px;font-size:24px}
+.profile-card .profile-head p{margin:0 0 8px}
+.profile-card .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 16px 16px}
+.profile-card .stats .stat{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:104px;padding:12px 5px;margin:0}
+.profile-card .stat>svg{width:18px;height:18px;margin:0}
+.profile-card .stat strong{font-size:25px;line-height:30px;margin:0}
+.profile-card .stat small{font-size:10px;line-height:14px;margin:0;max-width:95px}
+.profile-card .profile-summary{padding-bottom:16px}
+.profile-links .profile-link{min-height:64px;padding-top:12px;padding-bottom:12px;gap:12px}
+.profile-links .profile-link>svg{flex:0 0 20px}
+.referral-panel{text-align:center}
+.referral-panel h2{font-size:22px;margin:8px 0 12px}
+.referral-panel>p{font-size:12px;line-height:1.6;margin:10px 0}
+.referral-panel .eyebrow{font-size:9px;letter-spacing:1.5px}
+.referral-panel .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:16px 0}
+.referral-panel .stat{padding:8px 3px;min-height:0;margin:0}
+.referral-panel .stat strong{font-size:26px;line-height:32px;margin:0 0 4px}
+.referral-panel .stat small{font-size:11px;line-height:16px;margin:0}
+.referral-panel label{display:block;font-size:12px;margin:12px 0 10px}
+.referral-panel input{margin-top:8px;padding:10px 12px;min-height:42px;font-size:12px}
+.referral-panel .primary{min-height:42px;padding:10px 12px;font-size:13px}
+dialog:has(.referral-panel){padding:26px 20px 18px;width:min(94vw,440px);max-height:85dvh;overflow-y:auto}
