@@ -6,7 +6,7 @@ export class Telegram {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(10000)
     });
     const data = await response.json();
-    if (!response.ok || !data.ok) throw new GameError('Telegram so‘rovi bajarilmadi. Bot huquqlarini tekshiring.');
+    if (!response.ok || !data.ok) throw new GameError('Telegram sörovi bajarilmadi. Bot huquqlarini tekşiring.');
     return data.result;
   }
   async photo(fileId) {
@@ -23,9 +23,9 @@ export class Telegram {
   async member(groupId, userId, admin = false) {
     const m = await this.call('getChatMember', { chat_id: groupId, user_id: Number(userId) });
     const allowed = admin ? ['creator', 'administrator'].includes(m.status) : ['creator', 'administrator', 'member'].includes(m.status) || (m.status === 'restricted' && m.is_member);
-    if (!allowed) throw new GameError(admin ? 'Xonani guruh administratori ochadi' : 'Avval Telegram guruhiga a’zo bo‘ling');
+    if (!allowed) throw new GameError(admin ? 'Xonani guruh administratori oçadi' : 'Avval Telegram guruhiga a’zo böling');
   }
   send(chatId, text, roomId = '', buttonText = '', options = {}) {
-    return this.call('sendMessage', { chat_id: chatId, text, reply_markup: { inline_keyboard: [[{ text: buttonText || (roomId ? '🎭 O‘yinga qo‘shilish' : '🎭 Mini App’ni ochish'), url: this.link(roomId) }]] }, ...options });
+    return this.call('sendMessage', { chat_id: chatId, text, reply_markup: { inline_keyboard: [[{ text: buttonText || (roomId ? '🎭 Öyinga qöşiliş' : '🎭 Mini App’ni oçiş'), url: this.link(roomId) }]] }, ...options });
   }
 }

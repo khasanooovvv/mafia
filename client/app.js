@@ -102,7 +102,8 @@ const config = await fetch('/api/config').then(r => r.json());
 let demo = config.demo, socket, game = null, home = { me: { id: 'demo', name: 'Mehmon' }, profile: { games: 0, wins: 0, points: 0 }, rooms: [] };
 let page = location.hash.slice(1) || 'home', target = null, selectedTargets = [], actionMode = 'check', rankKind = 'groups', period = 'week', rankings = { groups: [], players: [] }, busy = false, serverOffset = 0;
 let pendingJoin = tg?.initDataUnsafe?.start_param || new URLSearchParams(location.search).get('room');
-if(/^ref_/.test(pendingJoin||''))pendingJoin=null;
+let pendingMenu=/^menu_(groups|game|profile|shop|roles|referrals)$/.exec(pendingJoin||'')?.[1];
+if(/^ref_|^menu_/.test(pendingJoin||''))pendingJoin=null;
 const menu = [['home','home','O‘yinlar'],['game','game','O‘yin stoli'],['rank','rank','Reyting'],['profile','user','Profil']];
 function avatar(user) {
   const initial = escape(Array.from(user.name || 'M')[0]);
@@ -456,7 +457,7 @@ if (demo) { $('#connection').textContent='Dizayn namoyishi'; $('#notice').hidden
 else if (!tg?.initData) { $('#connection').textContent='Telegram talab etiladi'; $('#notice').hidden=false; $('#notice').textContent='O‘ynash uchun Mini App’ni Telegram botdagi tugma orqali oching. Bu sahifa dizaynini ko‘rishingiz mumkin.'; }
 else {
   socket=io({auth:{initData:tg.initData}});
-  socket.on('connect', async()=>{ $('#connection').textContent='Ulangan';try {await refreshHome(); const id=pendingJoin||sessionStorage.getItem('mafia-room')||home.activeRoom;pendingJoin=null;if(id)await join(id);if(page==='rank')await loadRanks();}catch(e){sessionStorage.removeItem('mafia-room');toast(e.message);} });
+  socket.on('connect', async()=>{ $('#connection').textContent='Ulangan';try {await refreshHome(); const id=pendingJoin||sessionStorage.getItem('mafia-room')||home.activeRoom;pendingJoin=null;if(id)await join(id);if(pendingMenu){const section=pendingMenu;pendingMenu=null;navigate(section==='game'?'game':'profile');if(section==='groups')await showGroups();else if(section==='shop')showShop();else if(section==='roles')showCatalog();else if(section==='referrals')showReferrals();}if(page==='rank')await loadRanks();}catch(e){sessionStorage.removeItem('mafia-room');toast(e.message);} });
   socket.on('game:state',setGame); socket.on('room:left',()=>{game=null;sessionStorage.removeItem('mafia-room');navigate('home');});
   socket.on('room:expired',()=>{game=null;sessionStorage.removeItem('mafia-room');navigate('home');toast('Xona muddati tugadi');});
   socket.on('disconnect',()=>{$('#connection').textContent='Ulanish uzildi';});
@@ -469,7 +470,7 @@ const groupFields=[['registrationMs','Ro‘yxatdan o‘tish (soniya)',30,600,120
 async function showGroups() {
   $('#dialog').classList.remove('settings-screen');
   managedGroups=demo?[]:(await request('groups:list')).groups;
-  renderMarkup('#dialog-content', `<div class="group-manager"><span class="eyebrow">GURUH BOSHQARUVI</span><h2>Guruhlarim</h2><p>Botni guruhingizga qo‘shib administrator qiling. Yopiq guruhda <b>/sozlash</b> yuboring, so‘ng ro‘yxatni yangilang.</p>${demo?'<p class="notice">Demo: haqiqiy guruh ulash uchun Telegram orqali kiring. Quyida sozlamalarni ko‘rishingiz mumkin.</p>':''}${config.botUsername?`<a class="group-bot-link" href="https://t.me/${encodeURIComponent(config.botUsername)}?startgroup=true" target="_blank" rel="noopener noreferrer">Botni guruhga qo‘shish ↗</a>`:''}<form id="group-add-form"><label>Ochiq guruh @username yoki guruh ID<input name="ref" placeholder="@guruhingiz" required maxlength="50" ${demo?'disabled':''}></label><button class="primary full" type="submit" ${demo?'disabled':''}>Guruhni tekshirish va ulash</button></form><button class="ghost full" data-group-refresh>Ro‘yxatni yangilash</button><div class="group-list">${managedGroups.length?managedGroups.map(g=>`<button class="profile-link" data-group-edit="${escape(g.id)}"><span>${escape(g.name)}<small>O‘yin sozlamalari →</small></span></button>`).join(''): '<p>Ulangan guruhlar yo‘q.</p>'}</div>${demo?'<button class="secondary full" data-group-demo>Sozlamalar namunasini ko‘rish</button>':''}</div>`);
+  renderMarkup('#dialog-content', `<div class="group-manager"><span class="eyebrow">GURUH BOSHQARUVI</span><h2>Guruhlarim</h2><p>Bot administrator bölgan va siz boshqaradigan guruhlar.</p><div class="group-list">${managedGroups.length?managedGroups.map(g=>`<button class="profile-link" data-group-edit="${escape(g.id)}"><span>${escape(g.name)}<small>Öyin sozlamalari →</small></span></button>`).join(''):'<div class="shop-empty">Hozircha guruhlar yöq.<p>Botni guruhingizga qöşib administrator qiling — guruh shu yerda avtomatik körinadi. Avval ulangan guruh körinmasa, guruhda /sozlash yuboring.</p></div>'}</div><button class="ghost full" data-group-refresh>Röyxatni yangilaş</button>${config.botUsername?`<a class="group-bot-link" href="https://t.me/${encodeURIComponent(config.botUsername)}?startgroup=mafia&admin=delete_messages+restrict_members+pin_messages" target="_blank" rel="noopener noreferrer">+ Botni guruhga qöşiş</a>`:''}${demo?'<p class="notice">Haqiqiy guruhlaringizni köriş uçun Telegram orqali kiring.</p><button class="secondary full" data-group-demo>Sozlamalar namunasini köriş</button>':''}</div>`);
   if(!$('#dialog').open) $('#dialog').showModal();
 }
 let settingsDraft = null;
@@ -537,15 +538,11 @@ $('#dialog-content').addEventListener('click',async event=>{
  } catch(e){toast(e.message);} finally{busy=false;}
 });
 $('#dialog-content').addEventListener('submit',async event=>{
- const form=event.target;if(!['group-add-form','group-settings-form'].includes(form.id))return;
+ const form=event.target;if(form.id!=='group-settings-form')return;
  event.preventDefault();if(busy)return;busy=true;
- const button=form.id==='group-settings-form'?$('.settings-header-save'):form.querySelector('button[type="submit"]');button.disabled=true;
+ const button=$('.settings-header-save');button.disabled=true;
  try {
   const data=new FormData(form);
-  if(form.id==='group-add-form') {
-   if(demo)throw new Error('Telegram orqali kiring');
-   await request('groups:add',{ref:String(data.get('ref')).trim()});await showGroups();toast('Guruh ulandi');
-  } else {
    const settings=Object.fromEntries(groupFields.map(([key])=>[key,Number(data.get(key))*(key.endsWith('Ms')?1000:1)]));
    for(const key of Object.keys(BOOLEAN_RULES))settings[key]=data.has(key);
    settings.enabledRoles=data.getAll('enabledRoles');
@@ -555,7 +552,6 @@ $('#dialog-content').addEventListener('submit',async event=>{
    if(demo)localStorage.setItem('mafia-demo-settings',JSON.stringify(settings));
    else {await request('groups:save',{groupId:form.dataset.groupId,settings});const group=managedGroups.find(g=>g.id===form.dataset.groupId);if(group)group.settings=settings;}
    $('#settings-save-status').textContent=demo?'Namuna sozlamalar shu brauzerda saqlandi.':'Guruh sozlamalari saqlandi.';toast('Sozlamalar saqlandi');
-  }
  }catch(e){toast(e.message);}finally{busy=false;if(button.isConnected)button.disabled=false;}
 });
 

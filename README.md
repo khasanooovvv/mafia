@@ -201,3 +201,17 @@ Yangi foydalanuvçining birinchi haqiqatan tanga oladigan faol öyinidan keyin
 ikkalasiga 10 tangadan beriladi. Bonus öyin reytingi ballarini öşirmaydi.
 Natija va bonus bitta SQLite tranzaksiyasida saqlanadi. Bu Telegram ID böyiça
 himoya; bir odamning bir neçta haqiqiy akkauntini aniqlamaydi.
+
+
+## Bot boş menyusi va guruhlarni avtomatik ulaş
+
+Şaxsiy chatdagi `/start`: guruhga qöşiş, Guruhlarim, öyin, profil, dökon,
+rollar va referal tugmalari. Har tugma Mini App’dagi tegishli bölumni oçadi.
+Bot guruhda administrator qilinganda `my_chat_member` yangilanişi orqali
+Telegram tasdiqlagan inson administratorlariga guruh avtomatik biriktiriladi.
+`startgroup=mafia` va `/sozlash` ham guruhni ulaydi. Guruhlar röyxatini oçişda
+foydalanuvçi va botning administratorligi qayta tekşiriladi.
+Telegram API bot ilgari qöşilgan barça guruhlarni avtomatik sanab bermaydi;
+eski guruhlar uçun `/sozlash` yoki qo‘lda ulash ishlatiladi.
+Bu özgarişni joylaşda `setup-bot` webhookning `allowed_updates` röyxatiga
+`my_chat_member`ni qöşadi. Lokal tayyorlaşning özi ishlab turgan webhookni özgartirmaydi.

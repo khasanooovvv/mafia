@@ -9,7 +9,7 @@ import { TOKEN,signed } from '../support/signing.js';
 test('Telegram webhook and Mini App share joins, secret actions, voting, results and rewards',async t=>{
  let clock=Date.now(),updateId=0;const sent=[],answers=[];
  const bot={username:'test_bot',link:id=>`https://t.me/test_bot?startapp=${id||''}`,
-  member:async(group,id,admin)=>{if(id==='99'||(admin&&id!=='1'))throw new GameError('Ruxsat yo‘q');},
+  member:async(group,id,admin)=>{if(id==='99'||(admin&&id!=='1'))throw new GameError('Ruxsat yöq');},
   call:async(method,body)=>{if(method==='sendMessage')sent.push(body);if(method==='answerCallbackQuery')answers.push(body);return {message_id:sent.length};},
   send:async(chat,text,room,button,options={})=>{sent.push({chat_id:chat,text,...options});return {message_id:sent.length};}};
  const app=createApp({botToken:TOKEN,webhookSecret:'secret',telegram:bot,gameOptions:{now:()=>clock,pick:n=>n-1}});
@@ -65,12 +65,12 @@ test('private controls cover journalist pairs, commissioner modes, kamikaze and 
  const sent=[],answers=[];const bot={username:'test_bot',link:()=> 'https://t.me/test_bot?startapp',member:async()=>{},call:async(method,b)=>{(method==='answerCallbackQuery'?answers:sent).push(b);}};
  const bridge=new TelegramGame(bot,{rooms:new Map([[g.id,g]]),save:()=>{},publish:()=>{},advance:async()=>{},active:()=>g});
  const click=(id,action,arg='',chat=id)=>bridge.callback({id:'q',from:{id:Number(id)},message:{chat:{id:Number(chat),type:chat===id?'private':'supergroup'}},data:gameButton(g,'Action',action,arg).callback_data});
- g.member('1').role='journalist';await click('1','j1','1');assert(sent.at(-1).text.includes('Ikkinchi'));
+ g.member('1').role='journalist';await click('1','j1','1');assert(sent.at(-1).text.includes('Ikkinçi'));
  await click('1','j2','1_2');assert.deepEqual(g.actions.get('1').targetIds,['2','3']);
  g.actions.clear();g.member('1').role='commissioner';await click('1','mode','kill');assert(sent.at(-1).reply_markup.inline_keyboard.flat().every(b=>b.callback_data.includes('|kill|')));
  await click('1','kill','1');assert.equal(g.actions.get('1').mode,'kill');
  g.member('6').role='kamikaze';g.member('6').alive=false;g.pendingKamikazeChooser='6';await click('6','revenge','1');assert.equal(g.pendingKamikaze,'2');
- const count=sent.length;await click('1','refresh','','-1002');assert.equal(sent.length,count);assert.match(answers.at(-1).text,/boshqa chat/);
+ const count=sent.length;await click('1','refresh','','-1002');assert.equal(sent.length,count);assert.match(answers.at(-1).text,/boşqa çat/);
  const keyboard=groupKeyboard(bot,g);assert(!JSON.stringify(keyboard).includes('commissioner'));
  for(const b of sent.flatMap(m=>m.reply_markup?.inline_keyboard.flat()||[]))if(b.callback_data)assert(Buffer.byteLength(b.callback_data)<=64);
 });

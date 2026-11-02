@@ -12,13 +12,13 @@ test('group voting announces votes once, confirmation, result and next night wit
   next();next();g.vote('0',{targetId:'1'},g.revision);bridge.publish(g);bridge.publish(g); await bridge.queue;
   assert.equal(messages.filter(m=>m[1].includes('A → P1')).length,1);
   assert(!messages.some(m=>m[1].includes('Roli:')));
-  next();await bridge.queue; assert(messages.some(m=>m[1].includes('P1ni osmoqchimisiz')));
+  next();await bridge.queue; assert(messages.some(m=>m[1].includes('P1ni osmoqçimisiz')));
   for(const p of g.players.slice(0,4))g.vote(p.id,{confirm:true},g.revision);
   assert.equal(g.view('0').voting.approvals,4);
   next();await bridge.queue;
   assert(messages.some(m=>m[1].includes('4 👍 | 0 👎')));
   assert(messages.some(m=>m[1].includes('Roli:')));
-  assert(messages.some(m=>m[1].includes('Tun boshlandi')));
+  assert(messages.some(m=>m[1].includes('Tun boşlandi')));
   const before=messages.length;const restored=Game.restore(JSON.parse(JSON.stringify(g.snapshot())));bridge.publish(restored);await bridge.queue;assert.equal(messages.length,before);
 });
 
