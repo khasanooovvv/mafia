@@ -34,7 +34,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$VPS_SSH_KEY" && test -n "$VPS_KNOWN_HOSTS"
+          : "${VPS_SSH_KEY:?VPS_DEPLOY_KEY is missing}"
+          : "${VPS_KNOWN_HOSTS:?VPS_KNOWN_HOSTS is missing}"
           install -d -m 700 ~/.ssh
           printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/mafia_deploy
           chmod 600 ~/.ssh/mafia_deploy
