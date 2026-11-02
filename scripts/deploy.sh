@@ -12,7 +12,7 @@ archive=$(mktemp /opt/mafia/releases/incoming-XXXXXXXX.tar.gz)
 trap 'rm -f "$archive"' EXIT
 cat > "$archive"
 tar -tzf "$archive" >/dev/null
-tar -xzf "$archive" -C "$release" --no-same-owner --no-same-permissions
+(umask 022; tar -xzf "$archive" -C "$release" --no-same-owner --no-same-permissions)
 test -f "$release/src/server.js"
 # Build before replacing the running bot.
 docker build -t "mafia-app:$sha" "$release"
