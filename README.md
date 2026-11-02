@@ -190,3 +190,14 @@ Yangi image eski bot ishlayotganida yig‘iladi, yangilashdan oldin SQLite backu
 olinadi. Healthcheck muvaffaqiyatsiz bo‘lsa oldingi image qaytariladi.
 `.env` faqat server/lokal kompyuterda turadi, GitHubga yuborilmaydi.
 Mavjud umumiy Caddy `mafia-app:3000`ga yo‘naltiradi.
+
+
+## Referal tizimi
+
+Profil → Döstlarni taklif qiling yoki botda `/referral` orqali şaxsiy havola olinadi.
+`/start ref_ID` va imzolangan Mini App `start_param=ref_ID` bir xil hisoblanadi.
+Faqat yangi foydalanuvçi bir marta biriktiriladi; özini taklif qiliş taqiqlangan.
+Yangi foydalanuvçining birinchi haqiqatan tanga oladigan faol öyinidan keyin
+ikkalasiga 10 tangadan beriladi. Bonus öyin reytingi ballarini öşirmaydi.
+Natija va bonus bitta SQLite tranzaksiyasida saqlanadi. Bu Telegram ID böyiça
+himoya; bir odamning bir neçta haqiqiy akkauntini aniqlamaydi.

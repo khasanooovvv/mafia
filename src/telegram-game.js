@@ -138,6 +138,7 @@ export class TelegramGame {
   const id=String(m.from.id), arg=match[2]||'';
   try{
    this.h.rate?.(id);
+   if(match[1]==='start'&&/^ref_[1-9][0-9]{0,19}$/.test(arg)){await this.send(id,'Tun şahriga xuş kelibsiz! Yangi foydalanuvçi sifatida birinchi hisoblangan öyiningizda faol qatnaşsangiz, sizga va taklif qilgan döstingizga 10 tangadan beriladi.',[[{text:'Mini App’ni oçiş',url:this.bot.link()}]]);return true;}
    if(match[1]==='start'&&/^(join|play)_/.test(arg)){
     const g=this.h.rooms.get(arg.replace(/^(join|play)_/,''));check(g?.group,'O‘yin topilmadi');
     if(arg.startsWith('join_'))await this.join(g,m.from);

@@ -34,7 +34,37 @@ export class Store {
       CREATE TABLE IF NOT EXISTS box_payouts(week_start INTEGER NOT NULL,group_id TEXT NOT NULL,user_id TEXT NOT NULL,coins INTEGER NOT NULL,active_role INTEGER NOT NULL,PRIMARY KEY(week_start,group_id,user_id));
       CREATE INDEX IF NOT EXISTS weekly_reward_user ON box_payouts(week_start,user_id);
       CREATE TABLE IF NOT EXISTS updates(id INTEGER PRIMARY KEY, room_id TEXT, sent INTEGER NOT NULL DEFAULT 0);
+      CREATE TABLE IF NOT EXISTS bot_users(user_id TEXT PRIMARY KEY,first_seen INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS referrals(invitee_id TEXT PRIMARY KEY,inviter_id TEXT NOT NULL REFERENCES bot_users(user_id),created_at INTEGER NOT NULL,rewarded_game TEXT REFERENCES results(id),inviter_coins INTEGER NOT NULL DEFAULT 0,invitee_coins INTEGER NOT NULL DEFAULT 0);
+      CREATE INDEX IF NOT EXISTS referral_inviter ON referrals(inviter_id);
+      INSERT OR IGNORE INTO bot_users SELECT user_id,0 FROM inventories;
+      INSERT OR IGNORE INTO bot_users SELECT user_id,0 FROM scores;
     `);
+  }
+  registerUser(id, inviter = null, now = Date.now()) {
+    if(!/^[1-9][0-9]{0,19}$/.test(id))return false;
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      const fresh=this.db.prepare('INSERT OR IGNORE INTO bot_users VALUES(?,?)').run(id,now).changes;
+      const eligible=fresh && inviter!==id && /^[1-9][0-9]{0,19}$/.test(inviter||'') && this.db.prepare('SELECT user_id FROM bot_users WHERE user_id=?').get(inviter);
+      if(eligible)this.db.prepare('INSERT INTO referrals(invitee_id,inviter_id,created_at) VALUES(?,?,?)').run(id,inviter,now);
+      this.db.exec('COMMIT');return !!eligible;
+    } catch(e){this.db.exec('ROLLBACK');throw e;}
+  }
+  referralStats(id) {
+    const row=this.db.prepare('SELECT COUNT(*) invited,COALESCE(SUM(rewarded_game IS NOT NULL),0) qualified,COALESCE(SUM(inviter_coins),0) earned FROM referrals WHERE inviter_id=?').get(id);
+    const bonus=this.db.prepare('SELECT invitee_coins FROM referrals WHERE invitee_id=?').get(id)?.invitee_coins||0;
+    return {...row,bonus,rewardEach:10};
+  }
+  rewardReferral(id, gameId) {
+    // Called inside save's transaction, only after a counted active game.
+    const row=this.db.prepare('SELECT inviter_id FROM referrals WHERE invitee_id=? AND rewarded_game IS NULL').get(id);
+    if(!row)return;
+    this.db.prepare('UPDATE referrals SET rewarded_game=?,inviter_coins=10,invitee_coins=10 WHERE invitee_id=? AND rewarded_game IS NULL').run(gameId,id);
+    for(const user of [id,row.inviter_id]) {
+      this.inventory(user);
+      this.db.prepare('UPDATE inventories SET coins=coins+10 WHERE user_id=?').run(user);
+    }
   }
   settleWeeklyRewards(now=Date.now()) {
     const current=periodStart('week',now), weekMs=7*86400000;
@@ -106,6 +136,7 @@ export class Store {
       if (points > 0) {
         this.inventory(p.id);
         this.db.prepare('UPDATE inventories SET coins=coins+? WHERE user_id=?').run(points, p.id);
+        this.rewardReferral(p.id,game.id);
       }
       this.db.prepare('INSERT INTO scores VALUES(?,?,?,?,?)').run(game.id, p.id, p.name, points, Number(won));
     }

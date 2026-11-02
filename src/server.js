@@ -28,8 +28,9 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
   let nextRewardCheck=Date.now()+60000;
   const bot = telegram || new Telegram(botToken, botUsername);
   const groupVoting = new GroupVoting(bot, game => store.save(game));
+  function rateTelegram(id){const key='tg:'+id;const l=limits.get(key)||{start:Date.now(),n:0};if(Date.now()-l.start>10000){l.start=Date.now();l.n=0;}l.n++;limits.set(key,l);if(l.n>40)throw new GameError('Juda ko‘p so‘rov, biroz kuting');}
   const telegramGame=new TelegramGame(bot,{
-    rate:id=>{const key='tg:'+id;const l=limits.get(key)||{start:Date.now(),n:0};if(Date.now()-l.start>10000){l.start=Date.now();l.n=0;}l.n++;limits.set(key,l);if(l.n>40)throw new GameError('Juda ko‘p so‘rov, biroz kuting');},
+    rate:rateTelegram,
     rooms,active:id=>activeRoom(id),cooldown:(group,id)=>store.groupCooldown(group,id),
     advance:game=>advance(game),save:game=>store.save(game),publish:game=>publish(game),
     start:async(game,id)=>{if(game.group&&game.rules.adminOnlyStart){await bot.member(game.group.id,id,true);startGame(game,game.ownerId);}else startGame(game,id);},
@@ -74,6 +75,18 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
     const previous = store.update(update.update_id); if (previous?.sent) return;
     if(update.callback_query && bot.call){await telegramGame.callback(update.callback_query);store.rememberUpdate(update.update_id);store.sent(update.update_id);return;}
     const m = update.message;
+    if(m?.chat?.type==='private' && m.from && !m.from.is_bot && Number.isSafeInteger(m.from.id) && String(m.chat.id)===String(m.from.id)) {
+      const ref=/^\/start(?:@([a-zA-Z0-9_]+))?\s+ref_([1-9][0-9]{0,19})\s*$/.exec(m.text||'');
+      const own=!ref?.[1] || ref[1].toLowerCase()===bot.username.toLowerCase();
+      store.registerUser(String(m.from.id),own?ref?.[2]:null);
+    }
+    const referralCommand=/^\/(?:referral|referal)(?:@([a-zA-Z0-9_]+))?\s*$/.exec(m?.text||'');
+    if(m?.chat?.type==='private' && m.from && !m.from.is_bot && referralCommand && (!referralCommand[1] || referralCommand[1].toLowerCase()===bot.username.toLowerCase())) {
+      rateTelegram(String(m.from.id));
+      const stats=store.referralStats(String(m.from.id));
+      await bot.send(m.chat.id,`Döstlarni taklif qiling!\nhttps://t.me/${bot.username}?start=ref_${m.from.id}\n\nTakliflar: ${stats.invited}\nFaol referallar: ${stats.qualified}\nMukofot: ${stats.earned} tanga\n\nYangi döstingiz birinchi hisoblangan öyinida faol qatnaşsa, ikkalangizga 10 tangadan beriladi.`,'','Mini App’ni oçiş');
+      store.rememberUpdate(update.update_id);store.sent(update.update_id);return;
+    }
     if(bot.call && await telegramGame.privateMessage(m||{})){store.rememberUpdate(update.update_id);store.sent(update.update_id);return;}
     if(m?.chat && ['group','supergroup'].includes(m.chat.type) && /^\/start(?:@[\w]+)?(?:\s|$)/i.test(m.text||'')){
       const game=[...rooms.values()].find(g=>g.group?.id===String(m.chat.id)&&g.phase==='lobby');
@@ -193,6 +206,8 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
   io.use((socket, next) => {
     try {
       socket.data.user = authenticate(socket.handshake.auth?.initData, botToken);
+      const startParam=new URLSearchParams(socket.handshake.auth.initData).get('start_param');
+      store.registerUser(socket.data.user.id,/^ref_([1-9][0-9]{0,19})$/.exec(startParam||'')?.[1]);
       const expiry = (Number(new URLSearchParams(socket.handshake.auth.initData).get('auth_date')) + 3600) * 1000;
       const timer = setTimeout(() => socket.disconnect(true), Math.max(1, expiry - Date.now())); timer.unref();
       socket.once('disconnect', () => clearTimeout(timer)); next();
@@ -216,7 +231,7 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
         serial(async () => { if (!socket.connected) return; try { ack({ ok: true, ...await action(payload) }); } catch (error) { ack({ ok: false, error: error instanceof GameError ? error.message : 'So‘rovni bajarib bo‘lmadi' }); } });
       });
     }
-    handle('home:get', () => ({ me: user, profile: store.profile(user.id), inventory:store.inventory(user.id), weeklyRewards:store.weeklyRewards(user.id), activeRoom: activeRoom(user.id)?.id ?? null, rooms: [...rooms.values()].filter(g => g.phase === 'lobby' && !g.group).map(g => ({ id: g.id, name: `${g.players[0]?.name || 'Mafia'} xonasi`, count: g.players.length, max: g.rules.maxPlayers })) }));
+    handle('home:get', () => ({ me: user, profile: store.profile(user.id), inventory:store.inventory(user.id), referrals:store.referralStats(user.id), weeklyRewards:store.weeklyRewards(user.id), activeRoom: activeRoom(user.id)?.id ?? null, rooms: [...rooms.values()].filter(g => g.phase === 'lobby' && !g.group).map(g => ({ id: g.id, name: `${g.players[0]?.name || 'Mafia'} xonasi`, count: g.players.length, max: g.rules.maxPlayers })) }));
     handle('shop:buy',({item})=>{try{return {inventory:store.buyItem(user.id,item)};}catch(e){throw new GameError(e.message);}});
     handle('groups:list',async()=>{
       const groups=[];
