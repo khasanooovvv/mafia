@@ -20,7 +20,7 @@ test('start menu links and automatic group discovery enforce admin ownership',as
  t.after(async()=>{sockets.forEach(s=>s.disconnect());await app.close();});
  const post=async data=>{const r=await fetch(base+'/telegram/webhook',{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Bot-Api-Secret-Token':'secret'},body:JSON.stringify({update_id:++seq,...data})});assert.equal(r.status,200);};
  await post({message:{from:{id:1},chat:{id:1,type:'private'},text:'/start'}});
- assert(sent.at(-1).text.startsWith('MafiaUz'));
+ assert(sent.at(-1).text.startsWith("Salom!\nMen 🤵🏻MafiaUz o'yinini rasmiy botiman."));
  const bold=sent.at(-1).entities[0];assert.equal(sent.at(-1).text.slice(bold.offset,bold.offset+bold.length),'MafiaUz');
  const buttons=sent.at(-1).reply_markup.inline_keyboard.flat();
  assert(buttons.some(b=>b.url?.includes('startgroup=mafia')));

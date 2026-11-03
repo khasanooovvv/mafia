@@ -41,12 +41,12 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
       return 'A’zolikni tekshirib bo‘lmadi. Birozdan keyin qayta urinib ko‘ring.';
     }
   }
-  async function sendSubscriptionPrompt(chatId, error, payload = 'verify') {
+  async function sendSubscriptionPrompt(chatId, error) {
     await bot.call('sendMessage', {
       chat_id: chatId, text: error,
       reply_markup: { inline_keyboard: [
         [{ text: 'Guruhga a’zo bo‘lish', url: OFFICIAL_GROUP_URL }],
-        [{ text: 'A’zolikni tekshirish', url: 'https://t.me/'+bot.username+'?start='+encodeURIComponent(payload) }]
+        [{ text: 'Tekshirish ✅', callback_data: 'sub|verify' }]
       ] }
     });
   }
@@ -110,8 +110,16 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
       store.rememberUpdate(update.update_id);store.sent(update.update_id);return;
     }
 
-    if(update.callback_query && bot.call){
-      const query = update.callback_query;
+    const query = update.callback_query;
+    if (requireOfficialGroup && query?.from && !query.from.is_bot &&
+        Number.isSafeInteger(query.from.id) && /^sub\|[a-z0-9_-]{1,60}$/i.test(query.data || '')) {
+      const error = await subscriptionError(query.from.id);
+      await bot.call('answerCallbackQuery', {
+        callback_query_id: query.id, text: error || 'A’zolik tasdiqlandi', show_alert: true
+      });
+      store.rememberUpdate(update.update_id);store.sent(update.update_id);return;
+    }
+    if(query && bot.call){
       const error = query.from?.id && await subscriptionError(query.from.id);
       if (error) await bot.call('answerCallbackQuery', { callback_query_id: query.id, text: error+' Botga /start yuboring.', show_alert: true });
       else await telegramGame.callback(query);
@@ -123,8 +131,7 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
         (m.chat?.type === 'private' || /^(mafia|game|appgame|start|extended|stop|next|top|all|share|lastwords)$/i.test(command[1]))) {
       const error = await subscriptionError(m.from.id);
       if (error) {
-        const payload = /^\/start(?:@[a-z0-9_]+)?\s+([a-z0-9_-]{1,64})\s*$/i.exec(m.text)?.[1];
-        await sendSubscriptionPrompt(m.chat.id, error, payload);
+        await sendSubscriptionPrompt(m.chat.id, error);
         store.rememberUpdate(update.update_id);store.sent(update.update_id);return;
       }
     }
