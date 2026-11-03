@@ -24,7 +24,7 @@ async function body(req) {
   for await (const chunk of req) { size += chunk.length; if (size > 64000) throw new GameError('Sörov juda katta'); chunks.push(chunk); }
   return Buffer.concat(chunks).toString();
 }
-export function createApp({ botToken, botUsername = '', origin = 'http://localhost:3000', gameOptions = {}, dbPath = ':memory:', webhookSecret = '', telegram, developerUsername = '', adminLogin = '', adminPassword = '', registrationExtensionMs = 30000, requireOfficialGroup = false, demo = false } = {}) {
+export function createApp({ botToken, botUsername = '', origin = 'http://localhost:3000', gameOptions = {}, dbPath = ':memory:', webhookSecret = '', telegram, developerUsername = '', adminLogin = '', adminPassword = '', registrationExtensionMs = 30000, requireOfficialGroup = false, requireLinkedRooms = false, demo = false } = {}) {
   if (!botToken && !demo) throw new Error('BOT_TOKEN sozlanmagan. .env.example asosida .env yarating.');
   const store = new Store(dbPath), rooms = store.load();
   store.settleWeeklyRewards();
@@ -76,14 +76,23 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
     for(let i=0;i<result.groups.length;i+=5)await Promise.all(result.groups.slice(i,i+5).map(async row=>{
       try {const card=await groupCard(row.id);row.official=card.official;row.name=card.name;row.url=card.url;row.photoUrl=card.photoId?`/api/group-photo/${encodeURIComponent(row.id)}`:null;}catch {row.official=false;row.url=null;row.photoUrl=null;}
     }));
+    for (const player of result.players) player.verified = isVerifiedPlayer(player.id);
     return result;
   }
   const activeRoom = id => [...rooms.values()].find(g => g.phase !== 'finished' && g.players.some(p => p.id === id));
-  const makeRoom = (user, group = null) => {
+  store.db.exec('CREATE TABLE IF NOT EXISTS room_numbers (number INTEGER PRIMARY KEY AUTOINCREMENT)');
+  for (const game of rooms.values()) {
+    if (!game.number) {
+      game.number = Number(store.db.prepare('INSERT INTO room_numbers DEFAULT VALUES').run().lastInsertRowid);
+      store.save(game);
+    }
+  }
+  const makeRoom = (user, group = null, { entryMode, visibility } = {}) => {
     if (activeRoom(user.id)) throw new GameError('Avval mavjud xonangizni tark eting');
     if (rooms.size >= 1000) throw new GameError('Server band');
-    const game = new Game(user, { ...gameOptions, rules:{...gameOptions.rules,...(group?store.groupSettings(group.id):{})}, group }); rooms.set(game.id, game); if(group) game.deadline=game.now()+game.rules.registrationMs; store.save(game); return game;
+    const game = new Game(user, { ...gameOptions, rules:{...gameOptions.rules,...(group?store.groupSettings(group.id):{})}, group }); game.number = Number(store.db.prepare('INSERT INTO room_numbers DEFAULT VALUES').run().lastInsertRowid); game.entryMode = entryMode; game.visibility = visibility; rooms.set(game.id, game); if(group) game.deadline=game.now()+game.rules.registrationMs; store.save(game); return game;
   };
+  const isVerifiedPlayer = id => id === '6322372175';
   const state = (game, id) => game.view(id);
   function startGame(game,id){for(const p of game.players)p.buffs={...store.inventory(p.id)};game.start(id);}
   async function advance(game) {
@@ -114,9 +123,16 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
     if (requireOfficialGroup && query?.from && !query.from.is_bot &&
         Number.isSafeInteger(query.from.id) && /^sub\|[a-z0-9_-]{1,60}$/i.test(query.data || '')) {
       const error = await subscriptionError(query.from.id);
+      const privateChat = query.message?.chat?.type === 'private' && query.message.chat.id === query.from.id;
       await bot.call('answerCallbackQuery', {
-        callback_query_id: query.id, text: error || 'A’zolik tasdiqlandi', show_alert: true
+        callback_query_id: query.id,
+        ...(error ? { text: error, show_alert: true } : {})
       });
+      if (!error && privateChat) {
+        const id = String(query.from.id);
+        store.registerUser(id);
+        await telegramGame.home(id);
+      }
       store.rememberUpdate(update.update_id);store.sent(update.update_id);return;
     }
     if(query && bot.call){
@@ -143,7 +159,7 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
       const cmd=/^\/(extended|stop|next|top|all|share|help)(?:@([a-zA-Z0-9_]+))?(?:\s|$)/i.exec(m.text||'');
       if(cmd&&(!cmd[2]||cmd[2].toLowerCase()===bot.username.toLowerCase())){
         rateTelegram(userId);const command=cmd[1].toLowerCase();
-        const game=[...rooms.values()].find(g=>g.group?.id===chatId&&g.phase!=='finished');
+        const game=[...rooms.values()].find(g=>!g.visibility&&g.group?.id===chatId&&g.phase!=='finished');
         let text='';
         if(['extended','stop','all'].includes(command))await bot.member(chatId,userId,true);
         if(command==='extended'){
@@ -194,7 +210,7 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
       store.rememberUpdate(update.update_id);store.sent(update.update_id);return;
     }
     if(m?.chat && ['group','supergroup'].includes(m.chat.type) && /^\/start(?:@[\w]+)?(?:\s|$)/i.test(m.text||'')){
-      const game=[...rooms.values()].find(g=>g.group?.id===String(m.chat.id)&&g.phase==='lobby');
+      const game=[...rooms.values()].find(g=>!g.visibility&&g.group?.id===String(m.chat.id)&&g.phase==='lobby');
       if(game){
         try{await advance(game);if(game.rules.adminOnlyStart){await bot.member(game.group.id,String(m.from.id),true);startGame(game,game.ownerId);}else startGame(game,String(m.from.id));store.save(game);publish(game);}
         catch(e){await bot.send(m.chat.id,e instanceof GameError?e.message:'Öyin boşlanmadi.');}
@@ -202,7 +218,7 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
       }
     }
     if(m?.from && !m.from.is_bot && ['group','supergroup'].includes(m.chat?.type)) {
-      const game=[...rooms.values()].find(g=>g.group?.id===String(m.chat.id)&&!['lobby','finished'].includes(g.phase));
+      const game=[...rooms.values()].find(g=>!g.visibility&&g.group?.id===String(m.chat.id)&&!['lobby','finished'].includes(g.phase));
       const rules=game?.rules || {...ADVANCED_DEFAULTS,...store.groupSettings(String(m.chat.id))};
       const p=game?.players.find(p=>p.id===String(m.from.id));
       const command=/^\/(mute|unmute)(?:@([\w]+))?(?:\s|$)/i.exec(m.text||'');
@@ -231,12 +247,17 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
     if (['mafia','game','appgame'].includes(match[1].toLowerCase()) && ['group', 'supergroup'].includes(m.chat.type)) {
       await bot.member(String(m.chat.id), String(m.from.id), true);
       let game = previous?.room_id ? rooms.get(previous.room_id) : [...rooms.values()].find(g => g.group?.id === String(m.chat.id) && g.phase !== 'finished');
+      if (game?.visibility) {
+        await bot.send(m.chat.id, 'Bu guruhda Mini App xonasi faol.');
+        store.rememberUpdate(update.update_id);store.sent(update.update_id);return;
+      }
       if (!game) game = makeRoom({ id: String(m.from.id), name: m.from.first_name || 'Öyinçi' }, { id: String(m.chat.id), name: String(m.chat.title || 'Guruh').slice(0, 100) });
       const watchers=store.db.prepare('SELECT user_id FROM next_game_subscriptions WHERE group_id=?').all(String(m.chat.id));
       if(!game.nextNotified){for(const watcher of watchers)try{await bot.send(watcher.user_id,`${game.group.name}: yangi öyin oçildi!`,game.id);store.db.prepare('DELETE FROM next_game_subscriptions WHERE group_id=? AND user_id=?').run(String(m.chat.id),watcher.user_id);}catch{}game.nextNotified=true;store.save(game);}
       if(!game.entryMode){game.entryMode=match[1].toLowerCase()==='appgame'?'miniapp':'telegram';store.save(game);}
       store.rememberUpdate(update.update_id, game.id);
-      const sent=await bot.send(m.chat.id, `${game.group.name}\n${game.entryMode==='miniapp'?'Mini App öyin xonasi oçiq. Mini App orqali qöşiling.':'Guruh öyin xonasi oçiq. Telegram orqali qöşiling.'}`, game.id,'',{...(bot.link?{reply_markup:groupKeyboard(bot,game)}:{})});
+      const sent=await bot.send(m.chat.id, `${game.group.name} · #${game.number}\n${game.entryMode==='miniapp'?'Mini App öyin xonasi oçiq. Mini App orqali qöşiling.':'Guruh öyin xonasi oçiq. Telegram orqali qöşiling.'}`, game.id,'',{...(bot.link?{reply_markup:groupKeyboard(bot,game)}:{})});
+      if (sent?.message_id) { game.registrationMessageId = sent.message_id; store.save(game); }
       if(game.rules.pinRegistration && sent?.message_id)await bot.call('pinChatMessage',{chat_id:m.chat.id,message_id:sent.message_id,disable_notification:true});
     } else {
       store.rememberUpdate(update.update_id);
@@ -331,7 +352,7 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
     } catch { next(new Error('Telegram orqali qayta kiring')); }
   });
   function publish(game) {
-    groupVoting.publish(game);
+    if (!game.visibility) groupVoting.publish(game);
     telegramGame.publish(game);
     for (const socket of io.sockets.sockets.values()) if (socket.data.roomId === game.id && game.players.some(p => p.id === socket.data.user.id)) socket.emit('game:state', state(game, socket.data.user.id));
   }
@@ -348,7 +369,33 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
         serial(async () => { if (!socket.connected) return; try { ack({ ok: true, ...await action(payload) }); } catch (error) { ack({ ok: false, error: error instanceof GameError ? error.message : 'Sörovni bajarib bölmadi' }); } });
       });
     }
-    handle('home:get', () => ({ me: user, profile: store.profile(user.id), inventory:store.inventory(user.id), referrals:store.referralStats(user.id), weeklyRewards:store.weeklyRewards(user.id), activeRoom: activeRoom(user.id)?.id ?? null, rooms: [...rooms.values()].filter(g => g.phase === 'lobby' && !g.group).map(g => ({ id: g.id, name: `${g.players[0]?.name || 'Mafia'} xonasi`, count: g.players.length, max: g.rules.maxPlayers })) }));
+    handle('home:get', async () => {
+      const active = activeRoom(user.id);
+      const listed = [...rooms.values()].filter(g =>
+        g.entryMode === 'telegram' ? g.phase !== 'finished' :
+        g.phase === 'lobby' && (g.visibility === 'public' || (!g.group && !g.visibility)));
+      const visibleRooms = await Promise.all(listed.map(async g => {
+        const telegramOnly = g.entryMode === 'telegram';
+        let url = null;
+        if (telegramOnly) {
+          try {
+            const card = await groupCard(g.group.id);
+            url = card.url;
+            if (g.registrationMessageId && url) url = url.startsWith('https://t.me/c/')
+              ? `https://t.me/c/${g.group.id.slice(4)}/${g.registrationMessageId}`
+              : `${url}/${g.registrationMessageId}`;
+          } catch {}
+        }
+        return {
+          id: telegramOnly ? undefined : g.id, number: g.number,
+          name: g.group?.name || `${g.players[0]?.name || 'Mafia'} xonasi`,
+          count: g.players.length, max: g.rules.maxPlayers, telegramOnly, started: g.phase !== 'lobby', url
+        };
+      }));
+      return { me: { ...user, verified: isVerifiedPlayer(user.id) }, profile: store.profile(user.id), inventory:store.inventory(user.id),
+        referrals:store.referralStats(user.id), weeklyRewards:store.weeklyRewards(user.id),
+        activeRoom: active && (!requireLinkedRooms || active.entryMode !== 'telegram') ? active.id : null, rooms: visibleRooms };
+    });
     handle('shop:buy',({item})=>{try{return {inventory:store.buyItem(user.id,item)};}catch(e){throw new GameError(e.message);}});
     handle('groups:list',async()=>{
       const groups=[];
@@ -366,11 +413,24 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
       return {player:{id:userId,name:row.name,...store.profile(userId)}};
     });
     handle('rankings:get', ({ period }) => { if (!['week', 'month', 'all'].includes(period)) throw new GameError('Davr notöğri'); return rankedGroups(period); });
-    handle('room:create', () => { const game = makeRoom(user); socket.data.roomId = game.id; publish(game); return { state: state(game, user.id) }; });
+    handle('room:create', async ({ groupId, visibility }) => {
+      let group = null;
+      if (requireLinkedRooms || groupId) {
+        if (!store.managedGroups(user.id).some(g => g.id === groupId)) throw new GameError('Avval guruhingizni ulang');
+        if (!['public', 'private'].includes(visibility)) throw new GameError('Xona turini tanlang');
+        group = await verifyGroup(groupId, user.id);
+        if ([...rooms.values()].some(g => g.group?.id === groupId && g.phase !== 'finished')) {
+          throw new GameError('Bu guruhda faol xona bor');
+        }
+      }
+      const game = makeRoom(user, group, group ? { entryMode: 'miniapp', visibility } : {});
+      socket.data.roomId = game.id; publish(game); return { state: state(game, user.id) };
+    });
     handle('room:join', async ({ roomId }) => {
       const game = rooms.get(roomId); if (!game) throw new GameError('Xona topilmadi yoki muddati tugagan');
+      if (requireLinkedRooms && game.entryMode === 'telegram') throw new GameError('Bu o‘yinga Telegram guruhidan qo‘shiling');
       const current = activeRoom(user.id); if (current && current.id !== roomId) throw new GameError('Siz boşqa xonadasiz');
-      if (game.group) {await bot.member(game.group.id, user.id);const cooldown=store.groupCooldown(game.group.id,user.id);if(cooldown>Date.now())throw new GameError('Oldingi öyindan çiqiş çeklovi hali tugamagan');}
+      if (game.group) {if (!game.visibility) await bot.member(game.group.id, user.id);const cooldown=store.groupCooldown(game.group.id,user.id);if(cooldown>Date.now())throw new GameError('Oldingi öyindan çiqiş çeklovi hali tugamagan');}
       await advance(game); game.join(user); store.save(game); socket.data.roomId = roomId; publish(game); return { state: state(game, user.id) };
     });
     async function current() { const game = rooms.get(socket.data.roomId); if (!game) throw new GameError('Avval xonaga kiring'); game.member(user.id); await advance(game); return game; }
@@ -418,7 +478,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   validateProduction(process.env);
   const demo = process.env.DEMO_MODE === 'true';
   if (demo && process.env.NODE_ENV === 'production') throw new Error('Production’da demo rejimi taqiqlangan');
-  const app = createApp({ botToken: process.env.BOT_TOKEN, botUsername: process.env.BOT_USERNAME, origin: process.env.APP_ORIGIN, dbPath: process.env.DB_PATH || 'data/mafia.sqlite', webhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET, developerUsername:process.env.DEVELOPER_USERNAME, adminLogin:process.env.ADMIN_LOGIN, adminPassword:process.env.ADMIN_PASSWORD, requireOfficialGroup: true, demo });
+  const app = createApp({ botToken: process.env.BOT_TOKEN, botUsername: process.env.BOT_USERNAME, origin: process.env.APP_ORIGIN, dbPath: process.env.DB_PATH || 'data/mafia.sqlite', webhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET, developerUsername:process.env.DEVELOPER_USERNAME, adminLogin:process.env.ADMIN_LOGIN, adminPassword:process.env.ADMIN_PASSWORD, requireOfficialGroup: true, requireLinkedRooms: true, demo });
   const host = demo ? '127.0.0.1' : process.env.HOST || '127.0.0.1', port = Number(process.env.PORT || 3000);
   app.http.listen(port, host, () => console.log(`Mafia Mini App: http://${host}:${port}`));
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, async () => { await app.close(); process.exit(0); });

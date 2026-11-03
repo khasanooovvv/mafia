@@ -326,7 +326,7 @@ export class Game {
     const me = this.member(id);
     const faction = role => MAFIA.has(role) ? 'mafia' : SOLO.has(role) ? role : 'citizens';
     return {
-      id: this.id, ownerId: this.ownerId, group: this.group, phase: this.phase, round: this.round,
+      id: this.id, number: this.number, visibility: this.visibility, ownerId: this.ownerId, group: this.group, phase: this.phase, round: this.round,
       revision: this.revision, deadline: this.deadline, serverTime: this.now(), rules: { ...this.rules },
       nightEvents:this.phase==='night'&&this.rules.showActions?[...this.actions].map(([actor,action])=>nightNarrative(roleOf(this.member(actor)),action)):[],
       coWinners:['mafia','citizens'].includes(this.winner)?this.players.filter(p=>p.suicideWon).map(p=>({id:p.id,name:p.name,role:'suicide'})):[],

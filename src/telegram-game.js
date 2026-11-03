@@ -129,6 +129,7 @@ export class TelegramGame {
   }).catch(()=>console.error('Telegram şaxsiy öyin xabari yuborilmadi'));
  }
  async join(g,from){
+  check(g.entryMode !== 'miniapp', 'Bu xonaga Mini App orqali qo‘shiling');
   const id=String(from.id), existing=this.h.active(id);
   check(!existing||existing.id===g.id,'Avval boşqa öyindan çiqing');
   await this.bot.member(g.group.id,id);

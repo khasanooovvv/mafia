@@ -202,3 +202,12 @@ dialog,dialog .catalog-grid,dialog .chat-log,dialog .choice-sheet{overscroll-beh
 .referral-panel input{margin-top:8px;padding:10px 12px;min-height:42px;font-size:12px}
 .referral-panel .primary{min-height:42px;padding:10px 12px;font-size:13px}
 dialog:has(.referral-panel){padding:26px 20px 18px;width:min(94vw,440px);max-height:85dvh;overflow-y:auto}
+
+.rank-list .place{display:flex;align-items:center;gap:3px}
+.rank-list .leader-row{grid-template-columns:42px minmax(0,1fr) auto}
+.rank-list .rank-reward-badge{margin:0}
+.rank-list .rank-identity>div{line-height:1.2}
+.profile-head h2{display:flex;align-items:center;justify-content:center;gap:5px}
+.profile-head .official-group-badge{width:20px;height:20px;background:none;margin:0}
+#create-room-form{display:grid;gap:14px;text-align:left}
+#create-room-form select{display:block;width:100%;margin-top:6px;padding:10px;border:1px solid var(--app-line);border-radius:10px;background:var(--app-panel);color:var(--app-text)}
