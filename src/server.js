@@ -100,7 +100,16 @@ export function createApp({ botToken, botUsername = '', botAliases = [], origin 
   async function advance(game) {
     if(game.phase==='lobby' && game.deadline!==null && game.now()>=game.deadline) {
       if(game.players.length>=game.rules.minPlayers) startGame(game,game.ownerId);
-      else {game.deadline=null;game.touch();}
+      else {
+        store.remove(game.id);
+        rooms.delete(game.id);
+        for (const peer of io.sockets.sockets.values()) {
+          if (peer.data.roomId !== game.id) continue;
+          peer.data.roomId = null;
+          peer.emit('room:expired');
+        }
+        throw new GameError(`Ro‘yxat vaqti tugadi. Kamida ${game.rules.minPlayers} o‘yinchi kerak.`);
+      }
       store.save(game);publish(game);return;
     }
     if (game.tick()) { store.save(game); publish(game); }
@@ -405,9 +414,11 @@ export function createApp({ botToken, botUsername = '', botAliases = [], origin 
     }
     handle('home:get', async () => {
       const active = activeRoom(user.id);
-      const listed = [...rooms.values()].filter(g =>
-        g.entryMode === 'telegram' ? g.phase !== 'finished' :
-        g.phase === 'lobby' && (g.visibility === 'public' || (!g.group && !g.visibility)));
+      const listed = [...rooms.values()].filter(g => {
+        if (g.phase === 'finished' || (g.phase === 'lobby' && g.deadline !== null && g.now() >= g.deadline)) return false;
+        if (g.entryMode === 'telegram' || g === active) return true;
+        return g.phase === 'lobby' && g.visibility !== 'private';
+      });
       const visibleRooms = await Promise.all(listed.map(async g => {
         const telegramOnly = g.entryMode === 'telegram';
         let url = null;
@@ -423,7 +434,7 @@ export function createApp({ botToken, botUsername = '', botAliases = [], origin 
         return {
           id: telegramOnly ? undefined : g.id, number: g.number,
           name: g.group?.name || `${g.players[0]?.name || 'Mafia'} xonasi`,
-          count: g.players.length, max: g.rules.maxPlayers, telegramOnly, started: g.phase !== 'lobby', url
+          count: g.players.length, max: g.rules.maxPlayers, visibility: g.visibility, telegramOnly, started: g.phase !== 'lobby', url
         };
       }));
       return { me: { ...user, verified: isVerifiedPlayer(user.id) }, profile: store.profile(user.id), inventory:store.inventory(user.id),
