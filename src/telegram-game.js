@@ -27,14 +27,14 @@ export function groupKeyboard(bot,g){
 
 export class TelegramGame {
  constructor(bot,hooks){this.bot=bot;this.h=hooks;this.queue=Promise.resolve();this.purchases=new Map();}
- async send(chat,text,rows=[]){const entities=text.startsWith('Men 🤵🏻Mafia öyinini rasmiy botiman')?[{type:'bold',offset:text.indexOf('Mafia'),length:5}]:undefined;return this.bot.call('sendMessage',{chat_id:chat,text,...(entities?{entities}:{}),reply_markup:{inline_keyboard:rows},protect_content:true});}
+ async send(chat,text,rows=[]){const entities=text.startsWith('MafiaUz')?[{type:'bold',offset:0,length:7}]:undefined;return this.bot.call('sendMessage',{chat_id:chat,text,...(entities?{entities}:{}),reply_markup:{inline_keyboard:rows},protect_content:true});}
  targets(g,id,action,first){
   const buttons=g.players.flatMap((p,i)=>p.alive && !(action==='j2'&&String(i)===first)?[gameButton(g,p.name,action,first===undefined?String(i):`${first}_${i}`)]:[]);
   const rows=[];for(let i=0;i<buttons.length;i+=2)rows.push(buttons.slice(i,i+2));return rows;
  }
  async home(id){
   const button=(text,section)=>({text,callback_data:'nav|'+section});
-  return this.send(id,'Men 🤵🏻Mafia öyinini rasmiy botiman.\nQuyidagi bölumlardan birini tanlang.',[
+  return this.send(id,'MafiaUz\nQuyidagi bölumlardan birini tanlang.',[
    [{text:'🤵 Botni guruhga qöşiş',url:`https://t.me/${this.bot.username}?startgroup=mafia&admin=delete_messages+restrict_members+pin_messages`}],
    [button('👥 Guruhlar','groups'),button('🎲 Öyinga kiriş','game')],
    [button('👤 Profil','profile'),button('🛒 Dökon','shop')],
@@ -193,7 +193,7 @@ export class TelegramGame {
    if(match[1]==='issue'){const contact=this.h.developer;await this.send(id,contact?`Developer bilan boğlaniş: @${contact}`:'Developer bilan boğlaniş manzili hali sozlanmagan.');return true;}
 
    if(match[1]==='start'&&!arg){const active=this.h.active(id);if(active){if(active.group)await this.bot.member(active.group.id,id);await this.h.advance(active);}await this.home(id);if(active?.group)await this.menu(active,id);return true;}
-   if(match[1]==='start'&&/^ref_[1-9][0-9]{0,19}$/.test(arg)){await this.send(id,'Men 🤵🏻Mafia öyinini rasmiy botiman. Yangi foydalanuvçi sifatida birinchi hisoblangan öyiningizda faol qatnaşsangiz, sizga va taklif qilgan döstingizga 10 tangadan beriladi.',[[{text:'Mini App’ni oçiş',url:this.bot.link()}]]);return true;}
+   if(match[1]==='start'&&/^ref_[1-9][0-9]{0,19}$/.test(arg)){await this.send(id,'MafiaUz\nYangi foydalanuvçi sifatida birinchi hisoblangan öyiningizda faol qatnaşsangiz, sizga va taklif qilgan döstingizga 10 tangadan beriladi.',[[{text:'Mini App’ni oçiş',url:this.bot.link()}]]);return true;}
    if(match[1]==='start'&&/^(join|play)_/.test(arg)){
     const g=this.h.rooms.get(arg.replace(/^(join|play)_/,''));check(g?.group,'Öyin topilmadi');
     if(arg.startsWith('join_'))await this.join(g,m.from);

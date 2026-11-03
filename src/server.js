@@ -1,5 +1,5 @@
 import {createAdmin} from './admin.js';
-import {isOfficialGroup} from './official-group.js';
+import {isOfficialGroup, OFFICIAL_GROUP_USERNAME, OFFICIAL_GROUP_URL} from './official-group.js';
 import {GROUP_COMMANDS} from './bot-commands.js';
 import { validateProduction } from './config.js';
 import { BOOLEAN_RULES, ADVANCED_DEFAULTS, ROLE_ORDER } from './settings.js';
@@ -24,12 +24,32 @@ async function body(req) {
   for await (const chunk of req) { size += chunk.length; if (size > 64000) throw new GameError('Sörov juda katta'); chunks.push(chunk); }
   return Buffer.concat(chunks).toString();
 }
-export function createApp({ botToken, botUsername = '', origin = 'http://localhost:3000', gameOptions = {}, dbPath = ':memory:', webhookSecret = '', telegram, developerUsername = '', adminLogin = '', adminPassword = '', registrationExtensionMs = 30000, demo = false } = {}) {
+export function createApp({ botToken, botUsername = '', origin = 'http://localhost:3000', gameOptions = {}, dbPath = ':memory:', webhookSecret = '', telegram, developerUsername = '', adminLogin = '', adminPassword = '', registrationExtensionMs = 30000, requireOfficialGroup = false, demo = false } = {}) {
   if (!botToken && !demo) throw new Error('BOT_TOKEN sozlanmagan. .env.example asosida .env yarating.');
   const store = new Store(dbPath), rooms = store.load();
   store.settleWeeklyRewards();
   let nextRewardCheck=Date.now()+60000;
   const bot = telegram || new Telegram(botToken, botUsername);
+  async function subscriptionError(id) {
+    if (!requireOfficialGroup || demo) return null;
+    try {
+      const member = await bot.call('getChatMember', { chat_id: '@'+OFFICIAL_GROUP_USERNAME, user_id: Number(id) });
+      if (['creator', 'administrator', 'member'].includes(member.status) ||
+          (member.status === 'restricted' && member.is_member)) return null;
+      return 'Avval @'+OFFICIAL_GROUP_USERNAME+' guruhiga a’zo bo‘ling.';
+    } catch {
+      return 'A’zolikni tekshirib bo‘lmadi. Birozdan keyin qayta urinib ko‘ring.';
+    }
+  }
+  async function sendSubscriptionPrompt(chatId, error, payload = 'verify') {
+    await bot.call('sendMessage', {
+      chat_id: chatId, text: error,
+      reply_markup: { inline_keyboard: [
+        [{ text: 'Guruhga a’zo bo‘lish', url: OFFICIAL_GROUP_URL }],
+        [{ text: 'A’zolikni tekshirish', url: 'https://t.me/'+bot.username+'?start='+encodeURIComponent(payload) }]
+      ] }
+    });
+  }
   const groupVoting = new GroupVoting(bot, game => store.save(game));
   function rateTelegram(id){const key='tg:'+id;const l=limits.get(key)||{start:Date.now(),n:0};if(Date.now()-l.start>10000){l.start=Date.now();l.n=0;}l.n++;limits.set(key,l);if(l.n>40)throw new GameError('Juda köp sörov, biroz kuting');}
   const telegramGame=new TelegramGame(bot,{
@@ -90,8 +110,24 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
       store.rememberUpdate(update.update_id);store.sent(update.update_id);return;
     }
 
-    if(update.callback_query && bot.call){await telegramGame.callback(update.callback_query);store.rememberUpdate(update.update_id);store.sent(update.update_id);return;}
+    if(update.callback_query && bot.call){
+      const query = update.callback_query;
+      const error = query.from?.id && await subscriptionError(query.from.id);
+      if (error) await bot.call('answerCallbackQuery', { callback_query_id: query.id, text: error+' Botga /start yuboring.', show_alert: true });
+      else await telegramGame.callback(query);
+      store.rememberUpdate(update.update_id);store.sent(update.update_id);return;
+    }
     const m = update.message;
+    const command = /^\/([a-z]+)(?:@([a-z0-9_]+))?(?:\s|$)/i.exec(m?.text || '');
+    if (m?.from?.id && !m.from.is_bot && command && (!command[2] || command[2].toLowerCase() === bot.username?.toLowerCase()) &&
+        (m.chat?.type === 'private' || /^(mafia|game|appgame|start|extended|stop|next|top|all|share|lastwords)$/i.test(command[1]))) {
+      const error = await subscriptionError(m.from.id);
+      if (error) {
+        const payload = /^\/start(?:@[a-z0-9_]+)?\s+([a-z0-9_-]{1,64})\s*$/i.exec(m.text)?.[1];
+        await sendSubscriptionPrompt(m.chat.id, error, payload);
+        store.rememberUpdate(update.update_id);store.sent(update.update_id);return;
+      }
+    }
     if(m?.from && Number.isSafeInteger(m.from.id) && !m.from.is_bot && ['group','supergroup'].includes(m.chat?.type)){
       const chatId=String(m.chat.id),userId=String(m.from.id);
       store.db.prepare('INSERT INTO known_group_members VALUES(?,?,?) ON CONFLICT(group_id,user_id) DO UPDATE SET name=excluded.name').run(chatId,userId,String(m.from.first_name||'Öyinçi').slice(0,80));
@@ -270,9 +306,15 @@ export function createApp({ botToken, botUsername = '', origin = 'http://localho
     if(!game.players.length){rooms.delete(game.id);store.remove(game.id);}else{store.save(game);publish(game);}
   }
   const io = new Server(http, { cors: { origin }, maxHttpBufferSize: 20000, allowRequest: (req, callback) => callback(null, !req.headers.origin || req.headers.origin === origin) });
-  io.use((socket, next) => {
+  io.use(async (socket, next) => {
     try {
       socket.data.user = authenticate(socket.handshake.auth?.initData, botToken);
+      const error = await subscriptionError(socket.data.user.id);
+      if (error) {
+        const denied = new Error(error);
+        denied.data = { subscriptionUrl: OFFICIAL_GROUP_URL };
+        return next(denied);
+      }
       store.db.prepare('INSERT OR REPLACE INTO user_directory VALUES(?,?)').run(socket.data.user.id,socket.data.user.name);
       const startParam=new URLSearchParams(socket.handshake.auth.initData).get('start_param');
       store.registerUser(socket.data.user.id,/^ref_([1-9][0-9]{0,19})$/.exec(startParam||'')?.[1]);
@@ -369,7 +411,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   validateProduction(process.env);
   const demo = process.env.DEMO_MODE === 'true';
   if (demo && process.env.NODE_ENV === 'production') throw new Error('Production’da demo rejimi taqiqlangan');
-  const app = createApp({ botToken: process.env.BOT_TOKEN, botUsername: process.env.BOT_USERNAME, origin: process.env.APP_ORIGIN, dbPath: process.env.DB_PATH || 'data/mafia.sqlite', webhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET, developerUsername:process.env.DEVELOPER_USERNAME, adminLogin:process.env.ADMIN_LOGIN, adminPassword:process.env.ADMIN_PASSWORD, demo });
+  const app = createApp({ botToken: process.env.BOT_TOKEN, botUsername: process.env.BOT_USERNAME, origin: process.env.APP_ORIGIN, dbPath: process.env.DB_PATH || 'data/mafia.sqlite', webhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET, developerUsername:process.env.DEVELOPER_USERNAME, adminLogin:process.env.ADMIN_LOGIN, adminPassword:process.env.ADMIN_PASSWORD, requireOfficialGroup: true, demo });
   const host = demo ? '127.0.0.1' : process.env.HOST || '127.0.0.1', port = Number(process.env.PORT || 3000);
   app.http.listen(port, host, () => console.log(`Mafia Mini App: http://${host}:${port}`));
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, async () => { await app.close(); process.exit(0); });

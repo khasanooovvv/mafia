@@ -459,11 +459,18 @@ if (demo) { $('#connection').textContent='Dizayn namoyishi'; $('#notice').hidden
 else if (!tg?.initData) { $('#connection').textContent='Telegram talab etiladi'; $('#notice').hidden=false; $('#notice').textContent='O‘ynash uchun Mini App’ni Telegram botdagi tugma orqali oching. Bu sahifa dizaynini ko‘rishingiz mumkin.'; }
 else {
   socket=io({auth:{initData:tg.initData}});
-  socket.on('connect', async()=>{ $('#connection').textContent='Ulangan';try {await refreshHome(); const id=pendingJoin||sessionStorage.getItem('mafia-room')||home.activeRoom;pendingJoin=null;if(id)await join(id);if(pendingMenu){const section=pendingMenu;pendingMenu=null;navigate(section==='game'?'game':'profile');if(section==='groups')await showGroups();else if(section==='shop')showShop();else if(section==='roles')showCatalog();else if(section==='referrals')showReferrals();}if(page==='rank')await loadRanks();}catch(e){sessionStorage.removeItem('mafia-room');toast(e.message);} });
+  socket.on('connect', async()=>{ $('#notice').hidden=true; $('#connection').textContent='Ulangan';try {await refreshHome(); const id=pendingJoin||sessionStorage.getItem('mafia-room')||home.activeRoom;pendingJoin=null;if(id)await join(id);if(pendingMenu){const section=pendingMenu;pendingMenu=null;navigate(section==='game'?'game':'profile');if(section==='groups')await showGroups();else if(section==='shop')showShop();else if(section==='roles')showCatalog();else if(section==='referrals')showReferrals();}if(page==='rank')await loadRanks();}catch(e){sessionStorage.removeItem('mafia-room');toast(e.message);} });
   socket.on('game:state',setGame); socket.on('room:left',()=>{game=null;sessionStorage.removeItem('mafia-room');navigate('home');});
   socket.on('room:expired',()=>{game=null;sessionStorage.removeItem('mafia-room');navigate('home');toast('Xona muddati tugadi');});
   socket.on('disconnect',()=>{$('#connection').textContent='Ulanish uzildi';});
-  socket.on('connect_error',e=>{$('#connection').textContent='Ulanib bo‘lmadi';toast(e.message);});
+  socket.on('connect_error', e => {
+    $('#connection').textContent = 'Ulanib bo‘lmadi';
+    if (!e.data?.subscriptionUrl) return toast(e.message);
+    const notice = $('#notice');
+    notice.hidden = false;
+    renderMarkup('#notice', `<p>${escape(e.message)}</p><a class="secondary" href="${escape(e.data.subscriptionUrl)}" target="_blank" rel="noopener noreferrer">Guruhga a’zo bo‘lish</a> <button class="secondary" id="retry-subscription">A’zolikni tekshirish</button>`);
+    $('#retry-subscription').onclick = () => socket.connect();
+  });
 }
 
 
