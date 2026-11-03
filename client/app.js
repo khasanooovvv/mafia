@@ -102,6 +102,21 @@ const queryParams = new URLSearchParams(location.search);
 // Keep the signed launch payload before in-app navigation replaces the fragment.
 const initData = tg?.initData || launchParams.get('tgWebAppData') || queryParams.get('tgWebAppData') || '';
 tg?.ready?.(); tg?.expand?.();
+if (tg?.platform === 'ios' || tg?.platform === 'ios_beta') {
+  document.documentElement.classList.add('telegram-ios');
+  for (const event of ['gesturestart', 'gesturechange']) {
+    document.addEventListener(event, gesture => gesture.preventDefault(), { passive: false });
+  }
+}
+
+function syncChatViewport() {
+  const height = window.visualViewport?.height || tg?.viewportHeight || window.innerHeight;
+  document.documentElement.style.setProperty('--chat-viewport-height', `${Math.round(height)}px`);
+}
+syncChatViewport();
+window.visualViewport?.addEventListener('resize', syncChatViewport);
+tg?.onEvent?.('viewportChanged', syncChatViewport);
+
 
 const config = await fetch('/api/config').then(r => r.json());
 let demo = config.demo, socket, game = null, home = { me: { id: 'demo', name: 'Mehmon' }, profile: { games: 0, wins: 0, points: 0 }, rooms: [] };
@@ -127,8 +142,12 @@ async function request(event, data = {}) {
 }
 function setGame(next) {
   if (game?.phase !== next.phase || game?.id !== next.id) { chatDraft=''; if($('#match-chat-input'))$('#match-chat-input').value=''; target = null; selectedTargets = []; actionMode = 'check'; $('#dialog').close(); }
+  const justFinished = next.phase === 'finished' && (game?.id !== next.id || game.phase !== 'finished');
   game = next; serverOffset = next.serverTime - Date.now();
-  sessionStorage.setItem('mafia-room', next.id); render();
+  if (next.phase === 'finished') sessionStorage.removeItem('mafia-room');
+  else sessionStorage.setItem('mafia-room', next.id);
+  render();
+  if (justFinished) refreshHome().catch(() => {});
 }
 function navigate(next) { location.hash = next; }
 window.addEventListener('hashchange', async () => { page = location.hash.slice(1) || 'home'; window.scrollTo(0, 0); render(); try { if (page === 'rank') await loadRanks(); if (page === 'home' || page === 'profile') await refreshHome(); } catch (e) { toast(e.message); } });
@@ -270,8 +289,12 @@ function resolveDemoInspection(){
 function renderGame() {
   if (!game) { renderMarkup('#main', `<div class="page-heading"><div><h1>O‘yin stoli</h1><p class="muted">Stolingiz sizni kutmoqda.</p></div></div><section class="card empty">${icon('game')}Avval xonaga qo‘shiling yoki o‘z xonangizni yarating.<br><br><button class="primary" data-action="create">Xona yaratish</button></section>`); return; }
   if (game.phase === 'finished') {
+    const reward = game.rewards;
+    const rewardSummary = reward ? `<p class="muted">+${reward.coins} tanga · Guruhga +${reward.groupPoints} ochko</p>${
+      reward.qualified ? '' : `<p class="muted">${reward.duration < 180 ? 'Hisobga kirishi uchun o‘yin kamida 3 daqiqa davom etishi kerak.' : 'O‘yin reytingga kiritish shartlarini bajarmadi.'}</p>`
+    }` : '';
     const resultTitle = { mafia:'Mafia g‘alaba qozondi', citizens:'Shahar g‘alaba qozondi', maniac:'Manyak yolg‘iz g‘alaba qozondi', suicide:'Suidsid maqsadiga yetdi', draw:'Durang' };
-    renderMarkup('#main', `<section class="card result"><span style="font-size:55px">${game.winner === 'mafia' ? '🎩' : game.winner === 'maniac' ? '🔪' : game.winner === 'suicide' ? '🎭' : '☀'}</span><h2>${resultTitle[game.winner] || 'O‘yin yakunlandi'}</h2>${(game.coWinners||[]).map(p=>`<p>${escape(p.name)} — Suidsid ham g‘alaba qozondi.</p>`).join('')}<p class="muted">Har bir sirning javobi bor.</p>${game.players.map(p=>`<div class="leader-row"><span class="avatar">${avatar(p)}</span><b>${escape(p.name)}</b><span>${roles[p.role]?.[1] || '—'}</span></div>`).join('')}<br><button class="primary" data-action="home">Bosh sahifaga</button></section>`); return;
+    renderMarkup('#main', `<section class="card result"><span style="font-size:55px">${game.winner === 'mafia' ? '🎩' : game.winner === 'maniac' ? '🔪' : game.winner === 'suicide' ? '🎭' : '☀'}</span><h2>${resultTitle[game.winner] || 'O‘yin yakunlandi'}</h2>${rewardSummary}${(game.coWinners||[]).map(p=>`<p>${escape(p.name)} — Suidsid ham g‘alaba qozondi.</p>`).join('')}<p class="muted">Har bir sirning javobi bor.</p>${game.players.map(p=>`<div class="leader-row"><span class="avatar">${avatar(p)}</span><b>${escape(p.name)}</b><span>${roles[p.role]?.[1] || '—'}</span></div>`).join('')}<br><button class="primary" data-action="home">Bosh sahifaga</button></section>`); return;
   }
   const canSubmit = game.phase === 'confirmation' ? false : game.me.kamikazeChoice ? target : game.phase === 'voting' ? target : game.me.role === 'journalist' ? selectedTargets.length === 2 : target;
   const selectedIds = game.me.role === 'journalist' ? selectedTargets : [];
@@ -301,7 +324,7 @@ function currentChat(){
 let outgoingChat=[];
 function chatMessageMarkup(m){
  const p=game.players.find(p=>p.id===m.userId)||{name:m.name};
- return `<div class="chat-message ${m.userId===game.me.id?'own':''} ${m.failed?'is-failed':''}"><span class="chat-avatar">${avatar(p)}</span><div class="chat-bubble"><b>${escape(p.username?'@'+p.username:p.name||m.name)}</b><p>${escape(m.text)}</p><time>${m.failed?'Yuborilmadi':m.pending?'Yuborilmoqda…':new Date(m.at).toLocaleTimeString('uz-UZ',{hour:'2-digit',minute:'2-digit'})}</time></div></div>`;
+ return `<div class="chat-message ${m.userId===game.me.id?'own':''} ${m.failed?'is-failed':''}"><span class="chat-avatar" aria-hidden="true">${avatar(p)}</span><div class="chat-bubble"><b>${escape(p.username?'@'+p.username:p.name||m.name)}</b><p>${escape(m.text)}</p><time>${m.failed?'Yuborilmadi':m.pending?'Yuborilmoqda…':new Date(m.at).toLocaleTimeString('uz-UZ',{hour:'2-digit',minute:'2-digit'})}</time></div></div>`;
 }
 function renderChatContents(){
  const chat=currentChat();

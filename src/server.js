@@ -95,7 +95,16 @@ export function createApp({ botToken, botUsername = '', botAliases = [], origin 
     const game = new Game(user, { ...gameOptions, rules:{...gameOptions.rules,...(group?store.groupSettings(group.id):{})}, group }); game.number = Number(store.db.prepare('INSERT INTO room_numbers DEFAULT VALUES').run().lastInsertRowid); game.entryMode = entryMode; game.visibility = visibility; rooms.set(game.id, game); if(group) game.deadline=game.now()+game.rules.registrationMs; store.save(game); return game;
   };
   const isVerifiedPlayer = id => id === '6322372175';
-  const state = (game, id) => game.view(id);
+  const state = (game, id) => {
+    const view = game.view(id);
+    if (game.phase === 'finished') {
+      const result = store.db.prepare('SELECT qualified, points FROM results WHERE id=?').get(game.id);
+      const score = store.db.prepare('SELECT points FROM scores WHERE game_id=? AND user_id=?').get(game.id, id);
+      view.rewards = { coins: score?.points ?? 0, groupPoints: game.group ? result?.points ?? 0 : 0,
+        qualified: Boolean(result?.qualified), duration: (game.finishedAt - game.startedAt) / 1000 };
+    }
+    return view;
+  };
   function startGame(game,id){for(const p of game.players)p.buffs={...store.inventory(p.id)};game.start(id);}
   async function advance(game) {
     if(game.phase==='lobby' && game.deadline!==null && game.now()>=game.deadline) {
@@ -473,6 +482,7 @@ export function createApp({ botToken, botUsername = '', botAliases = [], origin 
     });
     handle('room:join', async ({ roomId }) => {
       const game = rooms.get(roomId); if (!game) throw new GameError('Xona topilmadi yoki muddati tugagan');
+      if (game.phase === 'finished') throw new GameError('Bu o‘yin yakunlangan');
       if (requireLinkedRooms && game.entryMode === 'telegram') throw new GameError('Bu o‘yinga Telegram guruhidan qo‘shiling');
       const current = activeRoom(user.id); if (current && current.id !== roomId) throw new GameError('Siz boshqa xonadasiz');
       if (game.group) {if (!game.visibility) await bot.member(game.group.id, user.id);const cooldown=store.groupCooldown(game.group.id,user.id);if(cooldown>Date.now())throw new GameError('Oldingi o‘yindan chiqish cheklovi hali tugamagan');}
