@@ -1,4 +1,11 @@
 import { GameError } from './game.js';
+export class TelegramApiError extends GameError {
+  constructor(method, status) {
+    super('Telegram sörovi bajarilmadi. Bot huquqlarini tekşiring.');
+    this.method = method;
+    this.status = status;
+  }
+}
 export class Telegram {
   constructor(token, username, fetcher = fetch) { this.token = token; this.username = (username || '').replace(/^@/, ''); this.fetcher = fetcher; }
   async call(method, body) {
@@ -6,7 +13,7 @@ export class Telegram {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(10000)
     });
     const data = await response.json();
-    if (!response.ok || !data.ok) throw new GameError('Telegram sörovi bajarilmadi. Bot huquqlarini tekşiring.');
+    if (!response.ok || !data.ok) throw new TelegramApiError(method, Number(data.error_code || response.status));
     return data.result;
   }
   async photo(fileId) {

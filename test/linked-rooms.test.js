@@ -11,7 +11,7 @@ test('linked rooms enforce discovery, invitations, and Telegram-only entry', asy
     call: async method => method === 'getMe' ? { id: 99 } :
       { id: -1001, type: 'supergroup', title: 'Linked group', username: 'linked_group' }
   };
-  const app = createApp({ botToken: TOKEN, telegram: bot, webhookSecret: 'secret', requireLinkedRooms: true });
+  const app = createApp({ botToken: TOKEN, telegram: bot, webhookSecret: 'secret', botAliases: ['second_bot'], requireLinkedRooms: true });
   await new Promise(resolve => app.http.listen(0, '127.0.0.1', resolve));
   const url = 'http://127.0.0.1:'+app.http.address().port;
   const sockets = [1, 2, 3].map(id => io(url, { auth: { initData: signed(id) }, reconnection: false }));
@@ -41,7 +41,7 @@ test('linked rooms enforce discovery, invitations, and Telegram-only entry', asy
   const response = await fetch(url+'/telegram/webhook', {
     method: 'POST', headers: { 'X-Telegram-Bot-Api-Secret-Token': 'secret' },
     body: JSON.stringify({ update_id: 1, message: {
-      from: { id: 1, first_name: 'Admin' }, chat: { id: -1001, type: 'supergroup', title: 'Linked group' }, text: '/game'
+      from: { id: 1, first_name: 'Admin' }, chat: { id: -1001, type: 'supergroup', title: 'Linked group' }, text: '/game@Second_Bot'
     } })
   });
   assert.equal(response.status, 200);
