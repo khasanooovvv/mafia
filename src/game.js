@@ -4,7 +4,7 @@ import { randomInt, randomUUID } from 'node:crypto';
 
 export class GameError extends Error {}
 const requireThat = (condition, message) => { if (!condition) throw new GameError(message); };
-export const DEFAULT_RULES = Object.freeze({ minPlayers: 6, maxPlayers: 20, nightMs: 45000, discussionMs: 90000, votingMs: 45000, confirmationMs: 30000 });
+export const DEFAULT_RULES = Object.freeze({ minPlayers: 4, maxPlayers: 20, nightMs: 45000, discussionMs: 90000, votingMs: 45000, confirmationMs: 30000 });
 const MAFIA = new Set(['don', 'mafia', 'lawyer']);
 const SOLO = new Set(['maniac', 'suicide']);
 const TEAM = role => MAFIA.has(role) ? 'mafia' : SOLO.has(role) ? role : 'citizens';
@@ -30,9 +30,9 @@ function assignRoles(count, enabled, rules) {
 export class Game {
   constructor(owner, { rules = {}, group = null, now = Date.now, pick = randomInt } = {}) {
     this.rules = { ...DEFAULT_RULES, ...EXTRA_RULES, ...rules, roleOrder:[...(rules.roleOrder || ROLE_ORDER)], enabledRoles: [...(rules.enabledRoles || OPTIONAL_ROLES)] };
-    requireThat(Number.isInteger(this.rules.minPlayers) && this.rules.minPlayers >= 6, 'Kamida 6 öyinçi kerak');
-    requireThat(Number.isInteger(this.rules.maxPlayers) && this.rules.maxPlayers >= this.rules.minPlayers && this.rules.maxPlayers <= 20, 'Öyinçilar çegarasi notöğri');
-    for (const key of ['nightMs', 'discussionMs', 'votingMs', 'confirmationMs']) requireThat(Number.isInteger(this.rules[key]) && this.rules[key] >= 1000 && this.rules[key] <= 600000, 'Taymer notöğri');
+    requireThat(Number.isInteger(this.rules.minPlayers) && this.rules.minPlayers >= 4, `Kamida ${this.rules.minPlayers} o‘yinchi kerak`);
+    requireThat(Number.isInteger(this.rules.maxPlayers) && this.rules.maxPlayers >= this.rules.minPlayers && this.rules.maxPlayers <= 20, 'O‘yinchilar chegarasi noto‘g‘ri');
+    for (const key of ['nightMs', 'discussionMs', 'votingMs', 'confirmationMs']) requireThat(Number.isInteger(this.rules[key]) && this.rules[key] >= 1000 && this.rules[key] <= 600000, 'Taymer noto‘g‘ri');
     this.id = randomUUID(); this.ownerId = owner.id; this.group = group;
     this.now = now; this.pick = pick; this.phase = 'lobby'; this.round = 0;
     this.players = []; this.actions = new Map(); this.votes = new Map(); this.confirmations = new Map(); this.reports = new Map(); this.pendingExecution = null; this.sergeantId = null;
@@ -42,25 +42,25 @@ export class Game {
   }
   touch() { this.revision++; this.updatedAt = this.now(); }
   member(id) { const p = this.players.find(p => p.id === id); requireThat(p, 'Xonaga a’zo emassiz'); return p; }
-  alive(id) { const p = this.member(id); requireThat(p.alive, 'Siz öyindan çiqqansiz'); return p; }
+  alive(id) { const p = this.member(id); requireThat(p.alive, 'Siz o‘yindan chiqqansiz'); return p; }
   join(user) {
-    requireThat(user && typeof user.id === 'string' && user.id.length > 0 && typeof user.name === 'string', 'Foydalanuvçi notöğri');
+    requireThat(user && typeof user.id === 'string' && user.id.length > 0 && typeof user.name === 'string', 'Foydalanuvchi noto‘g‘ri');
     const existing = this.players.find(p => p.id === user.id);
     if (existing) { existing.name = user.name.slice(0, 80); existing.username = user.username ?? null; existing.photoUrl = user.photoUrl ?? null; this.touch(); return; }
-    requireThat(this.phase === 'lobby', 'Öyin boşlangan');
-    requireThat(this.players.length < this.rules.maxPlayers, 'Xona tölgan');
+    requireThat(this.phase === 'lobby', 'O‘yin boshlangan');
+    requireThat(this.players.length < this.rules.maxPlayers, 'Xona to‘lgan');
     this.players.push({ id: user.id, name: user.name.slice(0, 80), username: user.username ?? null, photoUrl: user.photoUrl ?? null, alive: true, role: null, office: null }); this.touch();
   }
   leave(id) {
-    this.member(id); requireThat(this.phase === 'lobby', 'Boşlangan öyinni tark etib qayta qöşilib bölmaydi');
+    this.member(id); requireThat(this.phase === 'lobby', 'Boshlangan o‘yinni tark etib qayta qo‘shilib bo‘lmaydi');
     this.players = this.players.filter(p => p.id !== id);
     if (this.ownerId === id) this.ownerId = this.players[0]?.id ?? null;
     this.touch();
   }
   start(id) {
-    requireThat(!this.rules.adminOnlyStart || id === this.ownerId, 'Faqat xona egasi yoki guruh administratori boşlaydi');
-    requireThat(this.phase === 'lobby', 'Öyin boşlangan');
-    requireThat(this.players.length >= this.rules.minPlayers, 'Kamida 6 öyinçi kerak');
+    requireThat(!this.rules.adminOnlyStart || id === this.ownerId, 'Faqat xona egasi yoki guruh administratori boshlaydi');
+    requireThat(this.phase === 'lobby', 'O‘yin boshlangan');
+    requireThat(this.players.length >= this.rules.minPlayers, `Kamida ${this.rules.minPlayers} o‘yinchi kerak`);
     const roles = assignRoles(this.players.length, this.rules.enabledRoles, this.rules);
     for (let i = roles.length - 1; i > 0; i--) { const j = this.pick(i + 1); [roles[i], roles[j]] = [roles[j], roles[i]]; }
     this.players.forEach((p, i) => { p.role = roles[i]; p.office = null; });
@@ -94,64 +94,64 @@ export class Game {
   }
   nightAction(id, input, revision) {
     this.tick(); requireThat(this.phase === 'night', 'Hozir tun emas');
-    requireThat(revision === this.revision, 'Holat yangilangan, qayta urinib köring');
+    requireThat(revision === this.revision, 'Holat yangilangan, qayta urinib ko‘ring');
     const actor = this.alive(id); requireThat(!this.actions.has(id), 'Harakat allaqachon yuborilgan');
     const action = typeof input === 'string' ? { targetId: input } : input;
-    requireThat(action && typeof action === 'object', 'Nişon notöğri');
+    requireThat(action && typeof action === 'object', 'Nishon noto‘g‘ri');
     const role = actor.role;
     if (action.skip === true) {
-      requireThat(this.rules.skipNight && !['citizen','sergeant','lucky','suicide','kamikaze','mayor'].includes(role), 'Tungi harakatni ötkaziş yopiq');
+      requireThat(this.rules.skipNight && !['citizen','sergeant','lucky','suicide','kamikaze','mayor'].includes(role), 'Tungi harakatni o‘tkazish yopiq');
       this.actions.set(id,{targetIds:[],mode:null,skip:true}); this.activity.add(id); return;
     }
     const targets = role === 'journalist' ? action.targetIds : [action.targetId];
     const pumpkin = role==='citizen' && this.rules.halloween && actor.buffs?.pumpkin>0;
     const requiredTargets = role === 'journalist' ? 2 : ['citizen','sergeant','lucky','suicide','kamikaze','mayor'].includes(role) && !pumpkin ? 0 : 1;
-    if(pumpkin)requireThat(id!==action.targetId,'Özingizni tanlay olmaysiz');
+    if(pumpkin)requireThat(id!==action.targetId,'O‘zingizni tanlay olmaysiz');
     if (requiredTargets === 0) throw new GameError('Bu rol tunda harakat qilmaydi');
-    requireThat(Array.isArray(targets) && targets.length === requiredTargets, 'Kerakli öyinçini tanlang');
+    requireThat(Array.isArray(targets) && targets.length === requiredTargets, 'Kerakli o‘yinchini tanlang');
     for (const targetId of targets) this.alive(targetId);
-    if (role === 'journalist') requireThat(new Set(targets).size === 2 && !targets.includes(id), 'Ikki boşqa tirik öyinçini tanlang');
+    if (role === 'journalist') requireThat(new Set(targets).size === 2 && !targets.includes(id), 'Ikki boshqa tirik o‘yinchini tanlang');
     else if (role === 'commissioner') {
       action.mode ||= 'check';
-      requireThat(['check', 'kill'].includes(action.mode), 'Tekşiriş yoki otişni tanlang');
-      if(action.mode==='kill') requireThat(this.rules.commissionerShoot && (this.round>1 || this.rules.firstNightShoot), 'Komissarning otişi bu tunda yopiq');
-      requireThat(id !== action.targetId, 'Özingizni tanlay olmaysiz');
+      requireThat(['check', 'kill'].includes(action.mode), 'Tekshirish yoki otishni tanlang');
+      if(action.mode==='kill') requireThat(this.rules.commissionerShoot && (this.round>1 || this.rules.firstNightShoot), 'Komissarning otishi bu tunda yopiq');
+      requireThat(id !== action.targetId, 'O‘zingizni tanlay olmaysiz');
     } else if (role === 'don' || role === 'mafia' || role === 'lawyer' || role === 'maniac') {
-      requireThat(id !== action.targetId, 'Özingizni nişonga olmaysiz');
+      requireThat(id !== action.targetId, 'O‘zingizni nishonga olmaysiz');
       if (action.mode==='search') requireThat(isDon(actor) && this.rules.donSearch, 'Don qidiruvi yopiq');
-      if (['don', 'mafia'].includes(role) && !this.rules.friendlyFire) requireThat(!['don','mafia'].includes(roleOf(this.member(action.targetId))), 'Mafiya a’zosini nişonga olib bölmaydi');
+      if (['don', 'mafia'].includes(role) && !this.rules.friendlyFire) requireThat(!['don','mafia'].includes(roleOf(this.member(action.targetId))), 'Mafiya a’zosini nishonga olib bo‘lmaydi');
     } else if (role === 'doctor') {
-      if(this.rules.doctorNoRepeat) requireThat(this.lastDoctorTarget?.[id] !== action.targetId, 'Keçagi odamni qayta davolay olmaysiz');
-      if (id === action.targetId) requireThat(!this.doctorSelfSaveUsed.has(id), 'Özingizni faqat bir marta qutqara olasiz');
+      if(this.rules.doctorNoRepeat) requireThat(this.lastDoctorTarget?.[id] !== action.targetId, 'Kechagi odamni qayta davolay olmaysiz');
+      if (id === action.targetId) requireThat(!this.doctorSelfSaveUsed.has(id), 'O‘zingizni faqat bir marta qutqara olasiz');
     } else if (role === 'bodyguard') {
-      requireThat(id !== action.targetId && this.lastBodyguardTarget.get(id) !== action.targetId, 'Özingizni yoki keçagi nişonni qöriqlay olmaysiz');
+      requireThat(id !== action.targetId && this.lastBodyguardTarget.get(id) !== action.targetId, 'O‘zingizni yoki kechagi nishonni qo‘riqlay olmaysiz');
     } else if (role === 'hobo') {
-      requireThat(this.lastHoboTarget.get(id) !== action.targetId, 'Ketma-ket keçalarda bir nişonni kuzata olmaysiz');
-    } else if (role === 'mistress') requireThat(id !== action.targetId, 'Özingizni tanlay olmaysiz');
+      requireThat(this.lastHoboTarget.get(id) !== action.targetId, 'Ketma-ket kechalarda bir nishonni kuzata olmaysiz');
+    } else if (role === 'mistress') requireThat(id !== action.targetId, 'O‘zingizni tanlay olmaysiz');
     this.actions.set(id, { targetIds: [...targets], mode: action.mode || null });
     this.activity.add(id);
   }
   vote(id, input, revision) {
-    this.tick(); requireThat(['voting','confirmation'].includes(this.phase), 'Hozir ovoz beriş vaqti emas');
-    requireThat(revision === this.revision, 'Holat yangilangan, qayta urinib köring');
+    this.tick(); requireThat(['voting','confirmation'].includes(this.phase), 'Hozir ovoz berish vaqti emas');
+    requireThat(revision === this.revision, 'Holat yangilangan, qayta urinib ko‘ring');
     const actor = this.alive(id), action = typeof input === 'string' ? { targetId: input } : input;
     if (this.phase === 'confirmation') {
       requireThat(typeof action?.confirm === 'boolean', 'Hukmni tasdiqlang yoki rad eting');
       requireThat(!this.confirmations.has(id), 'Tasdiq ovozi allaqachon berilgan'); this.confirmations.set(id, action.confirm);
     } else {
       const targetId = action?.skip === true ? null : action?.targetId;
-      if (action?.skip === true) requireThat(this.rules.skipVoting, 'Ovozni ötkaziş yopiq');
-      else this.alive(targetId); requireThat(id !== targetId, 'Özingizga ovoz bera olmaysiz');
+      if (action?.skip === true) requireThat(this.rules.skipVoting, 'Ovozni o‘tkazish yopiq');
+      else this.alive(targetId); requireThat(id !== targetId, 'O‘zingizga ovoz bera olmaysiz');
       requireThat(!this.votes.has(id), 'Ovoz allaqachon berilgan'); this.votes.set(id, targetId);
     }
     this.activity.add(id);
   }
   lastWords(id,text){
     this.tick();const p=this.member(id);
-    requireThat(!p.alive&&this.phase==='discussion'&&this.lastResult?.phase==='night','Oxirgi söz faqat halok bölgan tongda yoziladi');
+    requireThat(!p.alive&&this.phase==='discussion'&&this.lastResult?.phase==='night','Oxirgi so‘z faqat halok bo‘lgan tongda yoziladi');
     const event=this.lastResult.events.find(e=>e.type==='eliminated'&&e.id===id&&e.lastWordsAllowed);
-    requireThat(event&&!event.lastWords,'Oxirgi sözni bir marta yoziş mumkin');
-    requireThat(typeof text==='string'&&text.trim().length>0&&text.length<=200,'Xabar 1–200 belgidan iborat bölsin');
+    requireThat(event&&!event.lastWords,'Oxirgi so‘zni bir marta yozish mumkin');
+    requireThat(typeof text==='string'&&text.trim().length>0&&text.length<=200,'Xabar 1–200 belgidan iborat bo‘lsin');
     event.lastWords=text.trim();this.touch();
   }
   chatChannel(id) {
@@ -168,21 +168,21 @@ export class Game {
   }
   sendChat(id, input) {
     this.tick();
-    const channel=this.chatChannel(id);requireThat(channel,'Bu bosqiçda çat sizga yopiq');
-    requireThat(!(channel==='discussion' && this.rules.blockMistress && this.mistressBlocked?.includes(id)), 'Ma’şuqa ta’sirida bu muhokamada yoza olmaysiz');
-    requireThat(typeof input==='string' && input.trim().length>0 && input.length<=500,'Xabar 1–500 belgidan iborat bölsin');
+    const channel=this.chatChannel(id);requireThat(channel,'Bu bosqichda chat sizga yopiq');
+    requireThat(!(channel==='discussion' && this.rules.blockMistress && this.mistressBlocked?.includes(id)), 'Ma’shuqa ta’sirida bu muhokamada yoza olmaysiz');
+    requireThat(typeof input==='string' && input.trim().length>0 && input.length<=500,'Xabar 1–500 belgidan iborat bo‘lsin');
     const text=input.trim().replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g,'');
-    requireThat(text.length>0,'Xabar böş');
+    requireThat(text.length>0,'Xabar bo‘sh');
     const recent=(this.chatMessages||[]).findLast(m=>m.userId===id);
     requireThat(!recent || this.now()-recent.at>=1000,'Xabarlar orasida bir soniya kuting');
     const message={id:randomUUID(),userId:id,name:this.member(id).name,text,channel,round:this.round,at:this.now()};
     this.chatMessages=[...(this.chatMessages||[]),message].slice(-200);this.activity.add(id);
   }
   kamikazeAction(id, targetId, revision) {
-    this.tick(); requireThat(this.phase === 'night' && this.pendingKamikazeChooser === id, 'Hozir qasos nişonini tanlay olmaysiz');
-    requireThat(revision === this.revision, 'Holat yangilangan, qayta urinib köring');
-    const actor = this.member(id); requireThat(!actor.alive && actor.role === 'kamikaze', 'Bu harakat faqat kamikadze uçun');
-    const target = this.alive(targetId); requireThat(targetId !== id, 'Özingizni tanlay olmaysiz');
+    this.tick(); requireThat(this.phase === 'night' && this.pendingKamikazeChooser === id, 'Hozir qasos nishonini tanlay olmaysiz');
+    requireThat(revision === this.revision, 'Holat yangilangan, qayta urinib ko‘ring');
+    const actor = this.member(id); requireThat(!actor.alive && actor.role === 'kamikaze', 'Bu harakat faqat kamikadze uchun');
+    const target = this.alive(targetId); requireThat(targetId !== id, 'O‘zingizni tanlay olmaysiz');
     this.pendingKamikaze = target.id; this.pendingKamikazeChooser = null; this.activity.add(id);
   }
   checkWinner() {

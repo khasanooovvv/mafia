@@ -194,69 +194,69 @@ Mavjud umumiy Caddy `mafia-app:3000`ga yo‘naltiradi.
 
 ## Referal tizimi
 
-Profil → Döstlarni taklif qiling yoki botda `/referral` orqali şaxsiy havola olinadi.
+Profil → Do‘stlarni taklif qiling yoki botda `/referral` orqali shaxsiy havola olinadi.
 `/start ref_ID` va imzolangan Mini App `start_param=ref_ID` bir xil hisoblanadi.
-Faqat yangi foydalanuvçi bir marta biriktiriladi; özini taklif qiliş taqiqlangan.
-Yangi foydalanuvçining birinchi haqiqatan tanga oladigan faol öyinidan keyin
-ikkalasiga 10 tangadan beriladi. Bonus öyin reytingi ballarini öşirmaydi.
-Natija va bonus bitta SQLite tranzaksiyasida saqlanadi. Bu Telegram ID böyiça
-himoya; bir odamning bir neçta haqiqiy akkauntini aniqlamaydi.
+Faqat yangi foydalanuvchi bir marta biriktiriladi; o‘zini taklif qilish taqiqlangan.
+Yangi foydalanuvchining birinchi haqiqatan tanga oladigan faol o‘yinidan keyin
+ikkalasiga 10 tangadan beriladi. Bonus o‘yin reytingi ballarini o‘shirmaydi.
+Natija va bonus bitta SQLite tranzaksiyasida saqlanadi. Bu Telegram ID bo‘yicha
+himoya; bir odamning bir nechta haqiqiy akkauntini aniqlamaydi.
 
 
-## Bot boş menyusi va guruhlarni avtomatik ulaş
+## Bot bosh menyusi va guruhlarni avtomatik ulash
 
-Şaxsiy chatdagi `/start`: guruhga qöşiş, Guruhlarim, öyin, profil, dökon,
-rollar va referal tugmalari. Har tugma Mini App’dagi tegishli bölumni oçadi.
-Bot guruhda administrator qilinganda `my_chat_member` yangilanişi orqali
+Shaxsiy chatdagi `/start`: guruhga qo‘shish, Guruhlarim, o‘yin, profil, do‘kon,
+rollar va referal tugmalari. Har tugma Mini App’dagi tegishli bo‘lumni ochadi.
+Bot guruhda administrator qilinganda `my_chat_member` yangilanishi orqali
 Telegram tasdiqlagan inson administratorlariga guruh avtomatik biriktiriladi.
-`startgroup=mafia` va `/sozlash` ham guruhni ulaydi. Guruhlar röyxatini oçişda
-foydalanuvçi va botning administratorligi qayta tekşiriladi.
-Telegram API bot ilgari qöşilgan barça guruhlarni avtomatik sanab bermaydi;
-eski guruhlar uçun `/sozlash` yoki qo‘lda ulash ishlatiladi.
-Bu özgarişni joylaşda `setup-bot` webhookning `allowed_updates` röyxatiga
-`my_chat_member`ni qöşadi. Lokal tayyorlaşning özi ishlab turgan webhookni özgartirmaydi.
+`startgroup=mafia` va `/sozlash` ham guruhni ulaydi. Guruhlar ro‘yxatini ochishda
+foydalanuvchi va botning administratorligi qayta tekshiriladi.
+Telegram API bot ilgari qo‘shilgan barcha guruhlarni avtomatik sanab bermaydi;
+eski guruhlar uchun `/sozlash` yoki qo‘lda ulash ishlatiladi.
+Bu o‘zgarishni joylashda `setup-bot` webhookning `allowed_updates` ro‘yxatiga
+`my_chat_member`ni qo‘shadi. Lokal tayyorlashning o‘zi ishlab turgan webhookni o‘zgartirmaydi.
 
 
-Bot boş menyusidagi Profil, Dökon, Rollar, Referal, Guruhlarim va Öyinga kiriş
-endi `nav|...` callbacklari bilan Telegram şaxsiy chatining özida işlaydi.
-Mini App uçun alohida tugma bor. Dökon xaridi 2 daqiqalik, foydalanuvçiga
-boğlangan bir martalik tasdiq bilan bajariladi; bot va Mini App bir hamyonni işlatadi.
+Bot bosh menyusidagi Profil, Do‘kon, Rollar, Referal, Guruhlarim va O‘yinga kirish
+endi `nav|...` callbacklari bilan Telegram shaxsiy chatining o‘zida ishlaydi.
+Mini App uchun alohida tugma bor. Do‘kon xaridi 2 daqiqalik, foydalanuvchiga
+bog‘langan bir martalik tasdiq bilan bajariladi; bot va Mini App bir hamyonni ishlatadi.
 
 
-Guruhda `/game` (yoki `/mafia`) Telegram öyini uçun ro‘yxat oçadi:
-qöşiliş va boşlaş tugmalari bot orqali işlaydi. `/AppGame` (menyuda `/appgame`)
-Mini App öyin xonasini oçadi va Mini App havolasini beradi.
-Guruhda bitta faol xona saqlanadi: boshqa komanda mavjud öyin rejimini almashtirmaydi.
+Guruhda `/game` (yoki `/mafia`) Telegram o‘yini uchun ro‘yxat ochadi:
+qo‘shilish va boshlash tugmalari bot orqali ishlaydi. `/AppGame` (menyuda `/appgame`)
+Mini App o‘yin xonasini ochadi va Mini App havolasini beradi.
+Guruhda bitta faol xona saqlanadi: boshqa komanda mavjud o‘yin rejimini almashtirmaydi.
 
 
-## Guruh va şaxsiy komandalar
+## Guruh va shaxsiy komandalar
 
 Guruh menyusi tartibi: /game, /appgame, /extended, /start, /stop, /next,
-/top, /all, /share, /help. Şaxsiy menyu: /profile, /start, /leave,
+/top, /all, /share, /help. Shaxsiy menyu: /profile, /start, /leave,
 /language, /issue. Menyular Telegram command scope orqali ajratilgan.
-/extended administrator uçun registratsiyaga 30 soniya qöşadi.
-/stop faqat lobby registratsiyasini bekor qiladi; faol öyinni töxtatmaydi.
-/next keyingi yangi xona oçilganda bir martalik şaxsiy bildirişnoma beradi.
-/top shu guruhdagi öyinçilarning umumiy tanga reytingidan top 30ni körsatadi.
-/all faqat admin uçun, 5 daqiqada bir marta. Bot tanigan 200 tagacha a’zo
-Telegram a’zoligi tekşirilgandan keyin HTML mention bilan çaqiriladi.
-Bot API barça guruh a’zolari röyxatini bermaydi; privacy rejimi ham
-bot qaysi oddiy xabarlarni körishini çeklaydi. Şu sabab /all barça a’zolarni
-kafolatlamaydi. /language hozirça faqat mavjud özbek tilini körsatadi.
-/issue uçun DEVELOPER_USERNAME server sozlamasida beriladi.
+/extended administrator uchun registratsiyaga 30 soniya qo‘shadi.
+/stop faqat lobby registratsiyasini bekor qiladi; faol o‘yinni to‘xtatmaydi.
+/next keyingi yangi xona ochilganda bir martalik shaxsiy bildirishnoma beradi.
+/top shu guruhdagi o‘yinchilarning umumiy tanga reytingidan top 30ni ko‘rsatadi.
+/all faqat admin uchun, 5 daqiqada bir marta. Bot tanigan 200 tagacha a’zo
+Telegram a’zoligi tekshirilgandan keyin HTML mention bilan chaqiriladi.
+Bot API barcha guruh a’zolari ro‘yxatini bermaydi; privacy rejimi ham
+bot qaysi oddiy xabarlarni ko‘rishini cheklaydi. Shu sabab /all barcha a’zolarni
+kafolatlamaydi. /language hozircha faqat mavjud o‘zbek tilini ko‘rsatadi.
+/issue uchun DEVELOPER_USERNAME server sozlamasida beriladi.
 
 
 ## Admin panel
 
-`/admin` manzilida login/parolli kuzatuv paneli bor: foydalanuvçilar va
-hamyon balanslari, guruhlar, faol xonalar, umumiy statistika. Röyxatlar 50 tadan
-sahifalanadi; panel hozirça ma’lumot körsatadi, balans yoki öyin holatini özgartirmaydi.
+`/admin` manzilida login/parolli kuzatuv paneli bor: foydalanuvchilar va
+hamyon balanslari, guruhlar, faol xonalar, umumiy statistika. Ro‘yxatlar 50 tadan
+sahifalanadi; panel hozircha ma’lumot ko‘rsatadi, balans yoki o‘yin holatini o‘zgartirmaydi.
 `ADMIN_LOGIN` va `ADMIN_PASSWORD` faqat `.env`da saqlanadi. Sozlanmasa API 503
-qaytaradi. Parol serverda scrypt bilan soliştiriladi; sessiya bir soatlik,
-HttpOnly/SameSite=Strict cookie’da, HTTPSda Secure. Server qayta işga tuşsa
-admin sessiyalari bekor böladi. /api/admin/overview autentifikatsiyasiz oçilmaydi.
-Registratsiya qilingan foydalanuvçi va bot administrator bölgan guruhlar
-öyin öynamagan bölsa ham reytingning mavjud top-100 chegarasida 0 bilan körinadi.
-Guruhning bot adminligi bekor bölgani haqidagi my_chat_member yangilanişi
-kelganda guruh reytingdan yaşiriladi. Shu sabab eski guruh holati webhook
-kelmagunça so‘nggi ma’lum holatga asoslanadi.
+qaytaradi. Parol serverda scrypt bilan solishtiriladi; sessiya bir soatlik,
+HttpOnly/SameSite=Strict cookie’da, HTTPSda Secure. Server qayta ishga tushsa
+admin sessiyalari bekor bo‘ladi. /api/admin/overview autentifikatsiyasiz ochilmaydi.
+Registratsiya qilingan foydalanuvchi va bot administrator bo‘lgan guruhlar
+o‘yin o‘ynamagan bo‘lsa ham reytingning mavjud top-100 chegarasida 0 bilan ko‘rinadi.
+Guruhning bot adminligi bekor bo‘lgani haqidagi my_chat_member yangilanishi
+kelganda guruh reytingdan yashiriladi. Shu sabab eski guruh holati webhook
+kelmaguncha so‘nggi ma’lum holatga asoslanadi.

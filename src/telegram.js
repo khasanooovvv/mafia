@@ -1,7 +1,7 @@
 import { GameError } from './game.js';
 export class TelegramApiError extends GameError {
   constructor(method, status) {
-    super('Telegram sörovi bajarilmadi. Bot huquqlarini tekşiring.');
+    super('Telegram so‘rovi bajarilmadi. Bot huquqlarini tekshiring.');
     this.method = method;
     this.status = status;
   }
@@ -30,9 +30,9 @@ export class Telegram {
   async member(groupId, userId, admin = false) {
     const m = await this.call('getChatMember', { chat_id: groupId, user_id: Number(userId) });
     const allowed = admin ? ['creator', 'administrator'].includes(m.status) : ['creator', 'administrator', 'member'].includes(m.status) || (m.status === 'restricted' && m.is_member);
-    if (!allowed) throw new GameError(admin ? 'Xonani guruh administratori oçadi' : 'Avval Telegram guruhiga a’zo böling');
+    if (!allowed) throw new GameError(admin ? 'Xonani guruh administratori ochadi' : 'Avval Telegram guruhiga a’zo bo‘ling');
   }
   send(chatId, text, roomId = '', buttonText = '', options = {}) {
-    return this.call('sendMessage', { chat_id: chatId, text, reply_markup: { inline_keyboard: [[{ text: buttonText || (roomId ? '🎭 Öyinga qöşiliş' : '🎭 Mini App’ni oçiş'), url: this.link(roomId) }]] }, ...options });
+    return this.call('sendMessage', { chat_id: chatId, text, reply_markup: { inline_keyboard: [[{ text: buttonText || (roomId ? '🎭 O‘yinga qo‘shilish' : '🎭 Mini App’ni ochish'), url: this.link(roomId) }]] }, ...options });
   }
 }

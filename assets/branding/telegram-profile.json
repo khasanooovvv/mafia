@@ -1,7 +1,7 @@
 {
   "bot": "UzMafiaaBot",
-  "short_description": "🎭 Mafia — tun, sir va zakovat öyini. Döstlaringiz bilan öynang, yaşirin rollarni toping va ğalaba qozoning!",
-  "description": "Salom!\nMen 🤵🏻MafiaUz o'yinini rasmiy botiman.\n\n🎭 Yaşirin rolingizni oling, şubhalilarni toping va jamoangizni ğalabaga olib boring.\n\n👥 6–20 öyinçi\n💬 Guruhda yoki Mini App’da öynang\n🏆 Haftalik reyting va tanga mukofotlari\n\nGuruhingizga botni qöşing va /mafia bilan öyinni boşlang!",
+  "short_description": "🎭 Mafia — tun, sir va zakovat o‘yini. Do‘stlaringiz bilan o‘ynang, yashirin rollarni toping va g‘alaba qozoning!",
+  "description": "Salom!\nMen 🤵🏻MafiaUz o'yinini rasmiy botiman.\n\n🎭 Yashirin rolingizni oling, shubhalilarni toping va jamoangizni g‘alabaga olib boring.\n\n👥 6–20 o‘yinchi\n💬 Guruhda yoki Mini App’da o‘ynang\n🏆 Haftalik reyting va tanga mukofotlari\n\nGuruhingizga botni qo‘shing va /mafia bilan o‘yinni boshlang!",
   "welcome_picture": "welcome-640x360.jpg",
-  "generation": "Built-in imagegen: 2D noir Mafia Don, detective, night city, playing cards; gold/pink title MAFIA and subtitle Tun şahriga xuş kelibsiz."
+  "generation": "Built-in imagegen: 2D noir Mafia Don, detective, night city, playing cards; gold/pink title MAFIA and subtitle Tun shahriga xush kelibsiz."
 }

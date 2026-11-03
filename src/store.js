@@ -46,6 +46,9 @@ export class Store {
       INSERT OR IGNORE INTO bot_users SELECT user_id,0 FROM inventories;
       INSERT OR IGNORE INTO bot_users SELECT user_id,0 FROM scores;
     `);
+    if (!this.db.prepare("PRAGMA table_info(user_directory)").all().some(column => column.name === "photo_url")) {
+      this.db.exec("ALTER TABLE user_directory ADD COLUMN photo_url TEXT");
+    }
   }
   registerUser(id, inviter = null, now = Date.now()) {
     if(!/^[1-9][0-9]{0,19}$/.test(id))return false;
@@ -130,8 +133,9 @@ export class Store {
     const roster = createHash('sha256').update(game.players.map(p => p.id).sort().join(',')).digest('hex');
     const repeated = this.db.prepare('SELECT id FROM results WHERE roster=? AND finished>=? AND qualified=1').get(roster, day);
     const groupToday = game.group ? this.db.prepare('SELECT COALESCE(SUM(points),0) n FROM results WHERE group_id=? AND finished>=? AND qualified=1').get(game.group.id, day).n : 0;
-    const qualified = ['citizens', 'mafia', 'maniac', 'suicide'].includes(game.winner) && ended - game.startedAt >= 180000 && game.players.length >= 6 && game.activity.size >= Math.ceil(game.players.length / 2);
-    const earnedGroupPoints = qualified ? Math.floor((10 + game.players.length) * (repeated ? 0.5 : 1)) : 0;
+    const qualified = ['citizens', 'mafia', 'maniac', 'suicide'].includes(game.winner) && ended - game.startedAt >= 180000 && game.players.length >= 4 && game.activity.size >= Math.ceil(game.players.length / 2);
+    const smallGroupFactor = game.players.length < 6 ? 0.5 : 1;
+    const earnedGroupPoints = qualified ? Math.floor((10 + game.players.length) * smallGroupFactor * (repeated ? 0.5 : 1)) : 0;
     const groupPoints = game.group ? Math.min(earnedGroupPoints, Math.max(0, 100 - groupToday)) : earnedGroupPoints;
     this.db.prepare('INSERT INTO results VALUES(?,?,?,?,?,?,?)').run(game.id, ended, game.group?.id ?? null, game.group?.name ?? null, roster, Number(qualified), groupPoints);
     for (const p of game.players) {
@@ -142,7 +146,7 @@ export class Store {
       if (points > 0) {
         this.inventory(p.id);
         this.db.prepare('UPDATE inventories SET coins=coins+? WHERE user_id=?').run(points, p.id);
-        this.rewardReferral(p.id,game.id);
+        if (game.players.length >= 6) this.rewardReferral(p.id,game.id);
       }
       this.db.prepare('INSERT INTO scores VALUES(?,?,?,?,?)').run(game.id, p.id, p.name, points, Number(won));
     }
@@ -152,7 +156,7 @@ export class Store {
     const start = periodStart(period, now);
     return {
       groups: this.db.prepare(`WITH totals AS (SELECT group_id id,MAX(group_name) name,SUM(points) points,COUNT(*) games FROM results WHERE finished>=? AND group_id IS NOT NULL AND qualified=1 GROUP BY group_id), ids AS (SELECT id FROM totals UNION SELECT group_id FROM registered_groups WHERE active=1) SELECT ids.id,COALESCE(g.name,t.name,'Guruh') name,COALESCE(t.points,0) points,COALESCE(t.games,0) games FROM ids LEFT JOIN totals t ON t.id=ids.id LEFT JOIN managed_groups g ON g.id=ids.id LEFT JOIN registered_groups rg ON rg.group_id=ids.id WHERE COALESCE(rg.active,1)=1 ORDER BY points DESC,games DESC,ids.id LIMIT 100`).all(start),
-      players: this.db.prepare(`WITH totals AS (SELECT s.user_id id,MAX(s.name) name,SUM(s.points) points,COUNT(*) games,SUM(won) wins FROM scores s JOIN results r ON r.id=s.game_id WHERE r.finished>=? AND s.points>0 GROUP BY s.user_id), ids AS (SELECT id FROM totals UNION SELECT user_id FROM bot_users) SELECT ids.id,COALESCE(d.name,t.name,'Öyinçi') name,COALESCE(t.points,0) points,COALESCE(t.games,0) games,COALESCE(t.wins,0) wins FROM ids LEFT JOIN totals t ON t.id=ids.id LEFT JOIN user_directory d ON d.user_id=ids.id ORDER BY points DESC,wins DESC,ids.id LIMIT 100`).all(start)
+      players: this.db.prepare(`WITH totals AS (SELECT s.user_id id,MAX(s.name) name,SUM(s.points) points,COUNT(*) games,SUM(won) wins FROM scores s JOIN results r ON r.id=s.game_id WHERE r.finished>=? AND s.points>0 GROUP BY s.user_id), ids AS (SELECT id FROM totals UNION SELECT user_id FROM bot_users) SELECT ids.id,COALESCE(d.name,t.name,'O‘yinchi') name,d.photo_url photoUrl,COALESCE(t.points,0) points,COALESCE(t.games,0) games,COALESCE(t.wins,0) wins FROM ids LEFT JOIN totals t ON t.id=ids.id LEFT JOIN user_directory d ON d.user_id=ids.id ORDER BY points DESC,wins DESC,ids.id LIMIT 100`).all(start)
     };
   }
   profile(id) {

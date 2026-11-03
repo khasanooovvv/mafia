@@ -14,14 +14,14 @@ import { authenticate } from './auth.js';
 import { Store } from './store.js';
 import { Telegram, TelegramApiError } from './telegram.js';
 import { shouldDeleteGroupMessage } from './moderation.js';
-import { GroupVoting } from './group-voting.js';
+import { GroupVoting, registrationText } from './group-voting.js';
 import { TelegramGame, groupKeyboard } from './telegram-game.js';
 
 const PUBLIC = fileURLToPath(new URL('../public/', import.meta.url));
 const sameSecret = (a, b) => typeof a === 'string' && typeof b === 'string' && a.length > 0 && Buffer.byteLength(a) === Buffer.byteLength(b) && timingSafeEqual(Buffer.from(a), Buffer.from(b));
 async function body(req) {
   let size = 0; const chunks = [];
-  for await (const chunk of req) { size += chunk.length; if (size > 64000) throw new GameError('Sörov juda katta'); chunks.push(chunk); }
+  for await (const chunk of req) { size += chunk.length; if (size > 64000) throw new GameError('So‘rov juda katta'); chunks.push(chunk); }
   return Buffer.concat(chunks).toString();
 }
 export function createApp({ botToken, botUsername = '', botAliases = [], origin = 'http://localhost:3000', gameOptions = {}, dbPath = ':memory:', webhookSecret = '', telegram, developerUsername = '', adminLogin = '', adminPassword = '', registrationExtensionMs = 30000, requireOfficialGroup = false, requireLinkedRooms = false, demo = false } = {}) {
@@ -53,7 +53,7 @@ export function createApp({ botToken, botUsername = '', botAliases = [], origin 
     });
   }
   const groupVoting = new GroupVoting(bot, game => store.save(game));
-  function rateTelegram(id){const key='tg:'+id;const l=limits.get(key)||{start:Date.now(),n:0};if(Date.now()-l.start>10000){l.start=Date.now();l.n=0;}l.n++;limits.set(key,l);if(l.n>40)throw new GameError('Juda köp sörov, biroz kuting');}
+  function rateTelegram(id){const key='tg:'+id;const l=limits.get(key)||{start:Date.now(),n:0};if(Date.now()-l.start>10000){l.start=Date.now();l.n=0;}l.n++;limits.set(key,l);if(l.n>40)throw new GameError('Juda ko‘p so‘rov, biroz kuting');}
   const telegramGame=new TelegramGame(bot,{
     rate:rateTelegram,store,developer:/^[a-zA-Z0-9_]{5,32}$/.test(developerUsername.replace(/^@/,''))?developerUsername.replace(/^@/,''):'',
     groups:async id=>{const groups=[];for(const group of store.managedGroups(id)){try{groups.push(await verifyGroup(group.id,id));}catch{}}return groups;},
@@ -106,7 +106,7 @@ export function createApp({ botToken, botUsername = '', botAliases = [], origin 
     if (game.tick()) { store.save(game); publish(game); }
   }
   async function updateBot(update) {
-    if (!Number.isSafeInteger(update.update_id)) throw new GameError('Update notöğri');
+    if (!Number.isSafeInteger(update.update_id)) throw new GameError('Update noto‘g‘ri');
     const previous = store.update(update.update_id); if (previous?.sent) return;
     if(update.my_chat_member){
       const change=update.my_chat_member,chat=change.chat;
@@ -156,8 +156,8 @@ export function createApp({ botToken, botUsername = '', botAliases = [], origin 
     }
     if(m?.from && Number.isSafeInteger(m.from.id) && !m.from.is_bot && ['group','supergroup'].includes(m.chat?.type)){
       const chatId=String(m.chat.id),userId=String(m.from.id);
-      store.db.prepare('INSERT INTO known_group_members VALUES(?,?,?) ON CONFLICT(group_id,user_id) DO UPDATE SET name=excluded.name').run(chatId,userId,String(m.from.first_name||'Öyinçi').slice(0,80));
-      for(const u of m.new_chat_members||[])if(Number.isSafeInteger(u.id)&&!u.is_bot)store.db.prepare('INSERT OR REPLACE INTO known_group_members VALUES(?,?,?)').run(chatId,String(u.id),String(u.first_name||'Öyinçi').slice(0,80));
+      store.db.prepare('INSERT INTO known_group_members VALUES(?,?,?) ON CONFLICT(group_id,user_id) DO UPDATE SET name=excluded.name').run(chatId,userId,String(m.from.first_name||'O‘yinchi').slice(0,80));
+      for(const u of m.new_chat_members||[])if(Number.isSafeInteger(u.id)&&!u.is_bot)store.db.prepare('INSERT OR REPLACE INTO known_group_members VALUES(?,?,?)').run(chatId,String(u.id),String(u.first_name||'O‘yinchi').slice(0,80));
       if(m.left_chat_member)store.db.prepare('DELETE FROM known_group_members WHERE group_id=? AND user_id=?').run(chatId,String(m.left_chat_member.id));
       const cmd=/^\/(extended|stop|next|top|all|share|help)(?:@([a-zA-Z0-9_]+))?(?:\s|$)/i.exec(m.text||'');
       if(cmd&&addressedToBot(cmd[2])){
@@ -166,27 +166,27 @@ export function createApp({ botToken, botUsername = '', botAliases = [], origin 
         let text='';
         if(['extended','stop','all'].includes(command))await bot.member(chatId,userId,true);
         if(command==='extended'){
-          if(!game||game.phase!=='lobby'||!game.deadline||game.deadline<=game.now())text='Faol registratsiya yöq.';
+          if(!game||game.phase!=='lobby'||!game.deadline||game.deadline<=game.now())text='Faol registratsiya yo‘q.';
           else {game.deadline+=registrationExtensionMs;game.touch();store.save(game);text=`Registratsiya ${registrationExtensionMs/1000} soniyaga uzaytirildi.`;publish(game);}
         }else if(command==='stop'){
-          if(!game||game.phase!=='lobby')text='Töxtatiladigan registratsiya yöq.';
-          else {rooms.delete(game.id);store.remove(game.id);for(const peer of io.sockets.sockets.values())if(peer.data.roomId===game.id){peer.data.roomId=null;peer.emit('room:expired');}text='Röyxatga oliş töxtatildi.';}
+          if(!game||game.phase!=='lobby')text='To‘xtatiladigan registratsiya yo‘q.';
+          else {rooms.delete(game.id);store.remove(game.id);for(const peer of io.sockets.sockets.values())if(peer.data.roomId===game.id){peer.data.roomId=null;peer.emit('room:expired');}text='Ro‘yxatga olish to‘xtatildi.';}
         }else if(command==='next'){
-          store.db.prepare('INSERT OR IGNORE INTO next_game_subscriptions VALUES(?,?)').run(chatId,userId);text='Keyingi yangi öyin oçilganda botdan şaxsiy bildirişnoma olasiz. Botni şaxsiy çatda /start bilan oçib qöying.';
+          store.db.prepare('INSERT OR IGNORE INTO next_game_subscriptions VALUES(?,?)').run(chatId,userId);text='Keyingi yangi o‘yin ochilganda botdan shaxsiy bildirishnoma olasiz. Botni shaxsiy chatda /start bilan ochib qo‘ying.';
         }else if(command==='top'){
           const rows=store.db.prepare('SELECT s.user_id,MAX(s.name) name,COUNT(*) games,SUM(s.won) wins,SUM(s.points) coins FROM scores s JOIN results r ON r.id=s.game_id WHERE r.group_id=? AND s.points>0 GROUP BY s.user_id ORDER BY coins DESC,wins DESC,s.user_id LIMIT 30').all(chatId);
-          text='🏆 Guruh öyinçilari reytingi\n'+(rows.map((p,i)=>`${i+1}. ${p.name} — ${p.coins} tanga · ${p.wins} ğalaba`).join('\n')||'Hali hisoblangan öyinlar yöq.');
-        }else if(command==='share'){store.registerUser(userId);text=`Döstlaringizni taklif qiling!\nhttps://t.me/${bot.username}?start=ref_${userId}`;}
+          text='🏆 Guruh o‘yinchilari reytingi\n'+(rows.map((p,i)=>`${i+1}. ${p.name} — ${p.coins} tanga · ${p.wins} g‘alaba`).join('\n')||'Hali hisoblangan o‘yinlar yo‘q.');
+        }else if(command==='share'){store.registerUser(userId);text=`Do‘stlaringizni taklif qiling!\nhttps://t.me/${bot.username}?start=ref_${userId}`;}
         else if(command==='help')text=GROUP_COMMANDS.map(c=>`/${c.command} — ${c.description}`).join('\n');
         else if(command==='all'){
           const last=store.db.prepare('SELECT sent FROM group_call_cooldowns WHERE group_id=?').get(chatId);
-          if(last?.sent && Date.now()-last.sent<300000)text='Ça qirişdan keyin 5 daqiqa kuting.'.replace('Ça q','Çaq');
+          if(last?.sent && Date.now()-last.sent<300000)text='Cha qirishdan keyin 5 daqiqa kuting.'.replace('Cha q','Chaq');
           else {
             const members=store.db.prepare('SELECT * FROM known_group_members WHERE group_id=? LIMIT 200').all(chatId);
             const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-            for(let i=0;i<members.length;i+=20){const active=[];for(const u of members.slice(i,i+20))try{await bot.member(chatId,u.user_id);active.push(u);}catch{}if(active.length)await bot.call('sendMessage',{chat_id:chatId,text:'📣 Öyinga marhamat!\n'+active.map(u=>`<a href="tg://user?id=${u.user_id}">${esc(u.name)}</a>`).join(' · '),parse_mode:'HTML'});}
+            for(let i=0;i<members.length;i+=20){const active=[];for(const u of members.slice(i,i+20))try{await bot.member(chatId,u.user_id);active.push(u);}catch{}if(active.length)await bot.call('sendMessage',{chat_id:chatId,text:'📣 O‘yinga marhamat!\n'+active.map(u=>`<a href="tg://user?id=${u.user_id}">${esc(u.name)}</a>`).join(' · '),parse_mode:'HTML'});}
             store.db.prepare('INSERT OR REPLACE INTO group_call_cooldowns VALUES(?,?)').run(chatId,Date.now());
-            text='Bot tanigan a’zolar çaqirildi. Telegram barça a’zolar röyxatini bermaydi.';
+            text='Bot tanigan a’zolar chaqirildi. Telegram barcha a’zolar ro‘yxatini bermaydi.';
           }
         }
         await bot.send(chatId,text);store.rememberUpdate(update.update_id);store.sent(update.update_id);return;
@@ -197,26 +197,26 @@ export function createApp({ botToken, botUsername = '', botAliases = [], origin 
       const ref=/^\/start(?:@([a-zA-Z0-9_]+))?\s+ref_([1-9][0-9]{0,19})\s*$/.exec(m.text||'');
       const own=addressedToBot(ref?.[1]);
       store.registerUser(String(m.from.id),own?ref?.[2]:null);
-      store.db.prepare('INSERT OR REPLACE INTO user_directory VALUES(?,?)').run(String(m.from.id),String(m.from.first_name||'Öyinçi').slice(0,80));
+      store.db.prepare('INSERT INTO user_directory(user_id,name) VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET name=excluded.name').run(String(m.from.id),String(m.from.first_name||'O‘yinchi').slice(0,80));
     }
     const referralCommand=/^\/(?:referral|referal)(?:@([a-zA-Z0-9_]+))?\s*$/.exec(m?.text||'');
     if(m?.chat?.type==='private' && m.from && !m.from.is_bot && referralCommand && addressedToBot(referralCommand[1])) {
       rateTelegram(String(m.from.id));
       const stats=store.referralStats(String(m.from.id));
-      await bot.send(m.chat.id,`Döstlarni taklif qiling!\nhttps://t.me/${bot.username}?start=ref_${m.from.id}\n\nTakliflar: ${stats.invited}\nFaol referallar: ${stats.qualified}\nMukofot: ${stats.earned} tanga\n\nYangi döstingiz birinchi hisoblangan öyinida faol qatnaşsa, ikkalangizga 10 tangadan beriladi.`,'','Mini App’ni oçiş');
+      await bot.send(m.chat.id,`Do‘stlarni taklif qiling!\nhttps://t.me/${bot.username}?start=ref_${m.from.id}\n\nTakliflar: ${stats.invited}\nFaol referallar: ${stats.qualified}\nMukofot: ${stats.earned} tanga\n\nYangi do‘stingiz birinchi hisoblangan o‘yinida faol qatnashsa, ikkalangizga 10 tangadan beriladi.`,'','Mini App’ni ochish');
       store.rememberUpdate(update.update_id);store.sent(update.update_id);return;
     }
     if(bot.call && await telegramGame.privateMessage(m||{})){store.rememberUpdate(update.update_id);store.sent(update.update_id);return;}
     if(m?.chat && ['group','supergroup'].includes(m.chat.type) && /^\/start(?:@[\w]+)?\s+mafia\s*$/.test(m.text||'')){
       const group=await verifyGroup(String(m.chat.id),String(m.from.id));store.manageGroup(group,String(m.from.id));
-      await bot.send(m.chat.id,'Guruh ulandi! Mini App → Guruhlarim bölümida körinadi. Öyinni /mafia bilan oçing.');
+      await bot.send(m.chat.id,'Guruh ulandi! Mini App → Guruhlarim bo‘lümida ko‘rinadi. O‘yinni /mafia bilan oching.');
       store.rememberUpdate(update.update_id);store.sent(update.update_id);return;
     }
     if(m?.chat && ['group','supergroup'].includes(m.chat.type) && /^\/start(?:@[\w]+)?(?:\s|$)/i.test(m.text||'')){
       const game=[...rooms.values()].find(g=>!g.visibility&&g.group?.id===String(m.chat.id)&&g.phase==='lobby');
       if(game){
         try{await advance(game);if(game.rules.adminOnlyStart){await bot.member(game.group.id,String(m.from.id),true);startGame(game,game.ownerId);}else startGame(game,String(m.from.id));store.save(game);publish(game);}
-        catch(e){await bot.send(m.chat.id,e instanceof GameError?e.message:'Öyin boşlanmadi.');}
+        catch(e){await bot.send(m.chat.id,e instanceof GameError?e.message:'O‘yin boshlanmadi.');}
         store.rememberUpdate(update.update_id);store.sent(update.update_id);return;
       }
     }
@@ -240,7 +240,7 @@ export function createApp({ botToken, botUsername = '', botAliases = [], origin 
     if (!m?.from || m.from.is_bot || typeof m.text !== 'string') { store.rememberUpdate(update.update_id); store.sent(update.update_id); return; }
     const match = /^\/(mafia|game|appgame|sozlash|start|help)(?:@([\w]+))?(?:\s|$)/i.exec(m.text);
     if (!match || !addressedToBot(match[2])) return;
-    if (!Number.isSafeInteger(m.from.id) || !Number.isSafeInteger(m.chat?.id)) throw new GameError('Update notöğri');
+    if (!Number.isSafeInteger(m.from.id) || !Number.isSafeInteger(m.chat?.id)) throw new GameError('Update noto‘g‘ri');
     if(match[1].toLowerCase()==='sozlash' && ['group','supergroup'].includes(m.chat.type)) {
       const group=await verifyGroup(String(m.chat.id),String(m.from.id));
       store.manageGroup(group,String(m.from.id)); store.rememberUpdate(update.update_id);
@@ -254,50 +254,56 @@ export function createApp({ botToken, botUsername = '', botAliases = [], origin 
         await bot.send(m.chat.id, 'Bu guruhda Mini App xonasi faol.');
         store.rememberUpdate(update.update_id);store.sent(update.update_id);return;
       }
-      if (!game) game = makeRoom({ id: String(m.from.id), name: m.from.first_name || 'Öyinçi' }, { id: String(m.chat.id), name: String(m.chat.title || 'Guruh').slice(0, 100) });
+      if (!game) game = makeRoom({ id: String(m.from.id), name: m.from.first_name || 'O‘yinchi' }, { id: String(m.chat.id), name: String(m.chat.title || 'Guruh').slice(0, 100) });
       const watchers=store.db.prepare('SELECT user_id FROM next_game_subscriptions WHERE group_id=?').all(String(m.chat.id));
-      if(!game.nextNotified){for(const watcher of watchers)try{await bot.send(watcher.user_id,`${game.group.name}: yangi öyin oçildi!`,game.id);store.db.prepare('DELETE FROM next_game_subscriptions WHERE group_id=? AND user_id=?').run(String(m.chat.id),watcher.user_id);}catch{}game.nextNotified=true;store.save(game);}
+      if(!game.nextNotified){for(const watcher of watchers)try{await bot.send(watcher.user_id,`${game.group.name}: yangi o‘yin ochildi!`,game.id);store.db.prepare('DELETE FROM next_game_subscriptions WHERE group_id=? AND user_id=?').run(String(m.chat.id),watcher.user_id);}catch{}game.nextNotified=true;store.save(game);}
       if(!game.entryMode){game.entryMode=match[1].toLowerCase()==='appgame'?'miniapp':'telegram';store.save(game);}
       store.rememberUpdate(update.update_id, game.id);
-      const sent=await bot.send(m.chat.id, `${game.group.name} · #${game.number}\n${game.entryMode==='miniapp'?'Mini App öyin xonasi oçiq. Mini App orqali qöşiling.':'Guruh öyin xonasi oçiq. Telegram orqali qöşiling.'}`, game.id,'',{...(bot.link?{reply_markup:groupKeyboard(bot,game)}:{})});
-      if (sent?.message_id) { game.registrationMessageId = sent.message_id; store.save(game); }
+      if (game.phase === 'lobby' && game.registrationMessageId) {
+        groupVoting.publish(game);
+        store.sent(update.update_id);
+        return;
+      }
+      const roster = game.phase === 'lobby' ? registrationText(game) : null;
+      const sent=await bot.send(m.chat.id, roster || `${game.group.name} · #${game.number}\nO‘yin boshlangan.`, game.id,'',{...(bot.link?{reply_markup:groupKeyboard(bot,game)}:{})});
+      if (roster && sent?.message_id) { game.registrationMessageId = sent.message_id; game.registrationText = roster; store.save(game); }
       if(game.rules.pinRegistration && sent?.message_id)await bot.call('pinChatMessage',{chat_id:m.chat.id,message_id:sent.message_id,disable_notification:true});
     } else {
       store.rememberUpdate(update.update_id);
-      await bot.send(m.chat.id, 'Mafia • Tun şahri\nMini App içida xona yarating yoki guruhda /mafia buyruğidan foydalaning. Guruh xonasini administrator oçadi.');
+      await bot.send(m.chat.id, 'Mafia • Tun shahri\nMini App ichida xona yarating yoki guruhda /mafia buyrug‘idan foydalaning. Guruh xonasini administrator ochadi.');
     }
     store.sent(update.update_id);
   }
   async function verifyGroup(ref,userId) {
     if(typeof ref!=='string'||!/^(-[0-9]{1,18}|@[a-zA-Z0-9_]{5,32})$/.test(ref)) throw new GameError('Guruh @username yoki Telegram ID sini kiriting');
     const chat=await bot.call('getChat',{chat_id:ref});
-    if(!['group','supergroup'].includes(chat.type)) throw new GameError('Faqat guruh ulaş mumkin');
+    if(!['group','supergroup'].includes(chat.type)) throw new GameError('Faqat guruh ulash mumkin');
     const id=String(chat.id); await bot.member(id,userId,true);
     const me=await bot.call('getMe',{}); await bot.member(id,String(me.id),true);
     return {id,name:String(chat.title||'Guruh').slice(0,100)};
   }
   function validateSettings(settings) {
-    if(!settings||typeof settings!=='object'||Array.isArray(settings)) throw new GameError('Sozlamalar notöğri');
+    if(!settings||typeof settings!=='object'||Array.isArray(settings)) throw new GameError('Sozlamalar noto‘g‘ri');
     const result={};
     for(const key of Object.keys(DEFAULT_RULES)) {
-      const value=settings[key],min=key.endsWith('Ms')?10000:6,max=key.endsWith('Ms')?120000:20;
-      if(!Number.isInteger(value)||value<min||value>max) throw new GameError('Öyinçilar 6–20, bosqiç vaqtlari 10–120 soniya bölsin');
+      const value=settings[key],min=key.endsWith('Ms')?10000:4,max=key.endsWith('Ms')?120000:20;
+      if(!Number.isInteger(value)||value<min||value>max) throw new GameError('O‘yinchilar 4–20, bosqich vaqtlari 10–120 soniya bo‘lsin');
       result[key]=value;
     }
     if(result.minPlayers>result.maxPlayers) throw new GameError('Minimal son maksimal sondan katta');
     for(const key of Object.keys(BOOLEAN_RULES)) {
-      if(settings[key] !== undefined && typeof settings[key] !== 'boolean') throw new GameError('Sozlama notöğri');
+      if(settings[key] !== undefined && typeof settings[key] !== 'boolean') throw new GameError('Sozlama noto‘g‘ri');
       result[key]=settings[key] ?? BOOLEAN_RULES[key];
     }
     for(const [key,allowed] of [['mafiaDivisor',[3,4]],['exitCooldownMs',[0,1800000,3600000,7200000,10800000,21600000,43200000,86400000]]]) {
-      result[key]=settings[key] ?? ADVANCED_DEFAULTS[key]; if(!allowed.includes(result[key])) throw new GameError('Sozlama notöğri');
+      result[key]=settings[key] ?? ADVANCED_DEFAULTS[key]; if(!allowed.includes(result[key])) throw new GameError('Sozlama noto‘g‘ri');
     }
     result.registrationMs=settings.registrationMs ?? ADVANCED_DEFAULTS.registrationMs;
-    if(!Number.isInteger(result.registrationMs)||result.registrationMs<30000||result.registrationMs>600000)throw new GameError('Röyxat vaqti 30–600 soniya bölsin');
+    if(!Number.isInteger(result.registrationMs)||result.registrationMs<30000||result.registrationMs>600000)throw new GameError('Ro‘yxat vaqti 30–600 soniya bo‘lsin');
     result.roleOrder=settings.roleOrder ?? ROLE_ORDER;
-    if(!Array.isArray(result.roleOrder)||result.roleOrder.length!==ROLE_ORDER.length||new Set(result.roleOrder).size!==ROLE_ORDER.length||result.roleOrder.some(r=>!ROLE_ORDER.includes(r)))throw new GameError('Rollar tartibi notöğri');
+    if(!Array.isArray(result.roleOrder)||result.roleOrder.length!==ROLE_ORDER.length||new Set(result.roleOrder).size!==ROLE_ORDER.length||result.roleOrder.some(r=>!ROLE_ORDER.includes(r)))throw new GameError('Rollar tartibi noto‘g‘ri');
     const enabled=settings.enabledRoles ?? OPTIONAL_ROLES;
-    if(!Array.isArray(enabled)||enabled.some(r=>!OPTIONAL_ROLES.includes(r))||new Set(enabled).size!==enabled.length) throw new GameError('Rollar notöğri');
+    if(!Array.isArray(enabled)||enabled.some(r=>!OPTIONAL_ROLES.includes(r))||new Set(enabled).size!==enabled.length) throw new GameError('Rollar noto‘g‘ri');
     result.enabledRoles=[...enabled];
     return result;
   }
@@ -352,7 +358,7 @@ export function createApp({ botToken, botUsername = '', botAliases = [], origin 
       if (!assets[pathname]) return json(404, { error: 'Not found' });
       const [file, type] = assets[pathname], data = await readFile(resolve(PUBLIC, file));
       res.writeHead(200, { 'Content-Type': type === 'image/png' ? type : `${type}; charset=utf-8` }); res.end(data);
-    } catch (e) { json(e instanceof SyntaxError ? 400 : 503, { error: 'Sörov bajarilmadi. Sozlamalarni tekşiring.' }); }
+    } catch (e) { json(e instanceof SyntaxError ? 400 : 503, { error: 'So‘rov bajarilmadi. Sozlamalarni tekshiring.' }); }
   });
   async function leaveGame(game,id){
     if(game.phase!=='lobby'&&game.phase!=='finished'){
@@ -371,7 +377,7 @@ export function createApp({ botToken, botUsername = '', botAliases = [], origin 
         denied.data = { subscriptionUrl: OFFICIAL_GROUP_URL };
         return next(denied);
       }
-      store.db.prepare('INSERT OR REPLACE INTO user_directory VALUES(?,?)').run(socket.data.user.id,socket.data.user.name);
+      store.db.prepare('INSERT INTO user_directory(user_id,name,photo_url) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET name=excluded.name, photo_url=excluded.photo_url').run(socket.data.user.id,socket.data.user.name,socket.data.user.photoUrl);
       const startParam=new URLSearchParams(socket.handshake.auth.initData).get('start_param');
       store.registerUser(socket.data.user.id,/^ref_([1-9][0-9]{0,19})$/.exec(startParam||'')?.[1]);
       const expiry = (Number(new URLSearchParams(socket.handshake.auth.initData).get('auth_date')) + 3600) * 1000;
@@ -392,9 +398,9 @@ export function createApp({ botToken, botUsername = '', botAliases = [], origin 
         if (typeof ack !== 'function') return;
         const limit = limits.get(user.id) || { start: Date.now(), n: 0 }; if (Date.now() - limit.start > 10000) { limit.start = Date.now(); limit.n = 0; }
         limit.n++; limits.set(user.id, limit);
-        if (limit.n > 40) return ack({ ok: false, error: 'Juda köp sörov, biroz kuting' });
-        if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return ack({ ok: false, error: 'Sörov notöğri' });
-        serial(async () => { if (!socket.connected) return; try { ack({ ok: true, ...await action(payload) }); } catch (error) { ack({ ok: false, error: error instanceof GameError ? error.message : 'Sörovni bajarib bölmadi' }); } });
+        if (limit.n > 40) return ack({ ok: false, error: 'Juda ko‘p so‘rov, biroz kuting' });
+        if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return ack({ ok: false, error: 'So‘rov noto‘g‘ri' });
+        serial(async () => { if (!socket.connected) return; try { ack({ ok: true, ...await action(payload) }); } catch (error) { ack({ ok: false, error: error instanceof GameError ? error.message : 'So‘rovni bajarib bo‘lmadi' }); } });
       });
     }
     handle('home:get', async () => {
@@ -435,12 +441,12 @@ export function createApp({ botToken, botUsername = '', botAliases = [], origin 
     handle('groups:add',async({ref})=>{const group=await verifyGroup(ref,user.id);return {group:store.manageGroup(group,user.id,{...DEFAULT_RULES,...store.groupSettings(group.id)})};});
     handle('groups:save',async({groupId,settings})=>{const group=await verifyGroup(groupId,user.id);return {group:store.manageGroup(group,user.id,validateSettings(settings))};});
     handle('players:profile', ({userId}) => {
-      if(typeof userId!=='string'||!/^\d{1,20}$/.test(userId))throw new GameError('Öyinçi ID notöğri');
+      if(typeof userId!=='string'||!/^\d{1,20}$/.test(userId))throw new GameError('O‘yinchi ID noto‘g‘ri');
       const row=store.db.prepare('SELECT name FROM scores WHERE user_id=? ORDER BY rowid DESC LIMIT 1').get(userId);
-      if(!row)throw new GameError('Öyinçi topilmadi');
+      if(!row)throw new GameError('O‘yinchi topilmadi');
       return {player:{id:userId,name:row.name,...store.profile(userId)}};
     });
-    handle('rankings:get', ({ period }) => { if (!['week', 'month', 'all'].includes(period)) throw new GameError('Davr notöğri'); return rankedGroups(period); });
+    handle('rankings:get', ({ period }) => { if (!['week', 'month', 'all'].includes(period)) throw new GameError('Davr noto‘g‘ri'); return rankedGroups(period); });
     handle('room:create', async ({ groupId, visibility }) => {
       let group = null;
       if (requireLinkedRooms || groupId) {
@@ -457,8 +463,8 @@ export function createApp({ botToken, botUsername = '', botAliases = [], origin 
     handle('room:join', async ({ roomId }) => {
       const game = rooms.get(roomId); if (!game) throw new GameError('Xona topilmadi yoki muddati tugagan');
       if (requireLinkedRooms && game.entryMode === 'telegram') throw new GameError('Bu o‘yinga Telegram guruhidan qo‘shiling');
-      const current = activeRoom(user.id); if (current && current.id !== roomId) throw new GameError('Siz boşqa xonadasiz');
-      if (game.group) {if (!game.visibility) await bot.member(game.group.id, user.id);const cooldown=store.groupCooldown(game.group.id,user.id);if(cooldown>Date.now())throw new GameError('Oldingi öyindan çiqiş çeklovi hali tugamagan');}
+      const current = activeRoom(user.id); if (current && current.id !== roomId) throw new GameError('Siz boshqa xonadasiz');
+      if (game.group) {if (!game.visibility) await bot.member(game.group.id, user.id);const cooldown=store.groupCooldown(game.group.id,user.id);if(cooldown>Date.now())throw new GameError('Oldingi o‘yindan chiqish cheklovi hali tugamagan');}
       await advance(game); game.join(user); store.save(game); socket.data.roomId = roomId; publish(game); return { state: state(game, user.id) };
     });
     async function current() { const game = rooms.get(socket.data.roomId); if (!game) throw new GameError('Avval xonaga kiring'); game.member(user.id); await advance(game); return game; }

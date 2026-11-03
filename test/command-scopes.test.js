@@ -21,7 +21,7 @@ test('registration controls, next subscriptions, group ranking and mentions work
   const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Bot-Api-Secret-Token':'secret'},body:JSON.stringify({update_id:++seq,message:{from:{id,first_name:'A<&'},chat:{id:group,type:group<0?'supergroup':'private',title:'Group'},text}})});return r.status;
  };
  assert.equal(await post('/next',2),200);
- await post('/game');const g=[...app.rooms.values()][0];assert(sent.some(m=>String(m.chat_id)==='2'&&m.text.includes('yangi öyin')));
+ await post('/game');const g=[...app.rooms.values()][0];assert(sent.some(m=>String(m.chat_id)==='2'&&m.text.includes('yangi o‘yin')));
  assert.equal(app.store.db.prepare('SELECT COUNT(*) n FROM next_game_subscriptions').get().n,0);
  const deadline=g.deadline;await post('/extended');assert.equal(g.deadline,deadline+30000);
  await post('/extended',2);assert.equal(g.deadline,deadline+30000);
@@ -34,6 +34,6 @@ test('registration controls, next subscriptions, group ranking and mentions work
  await post('/top');assert(sent.at(-1).text.includes('Local'));assert(!sent.at(-1).text.includes('Foreign'));
  await post('/stop',2);assert(app.rooms.has(g.id));await post('/stop');assert(!app.rooms.has(g.id));
  await post('/profile',1,1);assert(sent.at(-1).text.includes('Profil'));
- await post('/language',1,1);assert(sent.at(-1).text.includes('Özbekça'));
+ await post('/language',1,1);assert(sent.at(-1).text.includes('O‘zbekcha'));
  await post('/issue',1,1);assert(sent.at(-1).text.includes('@test_developer'));
 });

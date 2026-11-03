@@ -42,7 +42,7 @@ test('group management verifies both admins, validates settings and applies them
  botAdmin=false;assert.equal((await ask(owner,'groups:add',{ref:'@groupname'})).ok,false);botAdmin=true;
  assert.equal((await ask(owner,'groups:add',{ref:'@groupname'})).ok,true);
  const settings={...DEFAULT_RULES,maxPlayers:12,discussionMs:120000,hiddenVoting:true,mafiaDivisor:4,doctorNoRepeat:true,enableBuffs:true,roleOrder:[...ROLE_ORDER].reverse()};
- assert.equal((await ask(owner,'groups:save',{groupId:'-1001',settings:{...settings,maxPlayers:5}})).ok,false);
+ assert.equal((await ask(owner,'groups:save',{groupId:'-1001',settings:{...settings,maxPlayers:3}})).ok,false);
  assert.equal((await ask(owner,'groups:save',{groupId:'-1001',settings:{...settings,hiddenVoting:'true'}})).ok,false);
  assert.equal((await ask(owner,'groups:save',{groupId:'-1001',settings:{...settings,roleOrder:['doctor']}})).ok,false);
  assert.equal((await ask(owner,'groups:save',{groupId:'-1001',settings})).ok,true);

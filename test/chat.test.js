@@ -37,7 +37,7 @@ test('expired chat is immediately withheld even before a timer transition is pro
 test('mistress mute blocks discussion messages server-side but allows reading and expires next night',()=>{
  const {g,advance}=room();g.phase='discussion';g.rules.blockMistress=true;g.mistressBlocked=['3'];
  g.sendChat('1','Muhokama');assert.equal(g.view('3').chat.muted,true);assert.equal(g.view('3').chat.messages[0].text,'Muhokama');
- assert.throws(()=>g.sendChat('3','blocked'),/Ma’şuqa/);
+ assert.throws(()=>g.sendChat('3','blocked'),/Ma’shuqa/);
  g.rules.blockMistress=false;g.sendChat('3','allowed');
  advance();g.rules.blockMistress=true;g.phase='night';g.players[2].role='mafia';assert.equal(g.view('3').chat.muted,undefined);g.sendChat('3','night');
 });
